@@ -28,6 +28,24 @@
   margin-bottom: 16px;
 }
 
+.field {
+  display: flex;
+  flex-direction: column;
+}
+
+.field label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.field select {
+  margin-top: 0;
+}
+
 .filterRow {
   display: flex;
   gap: 8px;
@@ -51,6 +69,18 @@
 .active {
   background: var(--primary);
   color: #fff;
+}
+
+.required {
+  background: var(--success);
+  color: #fff;
+}
+
+.filterHint {
+  font-size: 11px;
+  color: var(--muted);
+  margin: 0;
+  line-height: 1.4;
 }
 
 .blockList {

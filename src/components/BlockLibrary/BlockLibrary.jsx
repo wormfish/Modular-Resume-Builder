@@ -1,10 +1,20 @@
 import { useState, useMemo } from 'react';
-import { BLOCK_SCHEMA } from '../../utils/constants';
+import { BLOCK_SCHEMA, SECTION_TYPES } from '../../utils/constants';
 import styles from './BlockLibrary.module.css';
 
 export default function BlockLibrary({ blocks, jobTypes, onEditBlock, onDeleteBlock }) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedJobType, setSelectedJobType] = useState(null);
+  const [selectedSection, setSelectedSection] = useState('all');
+  const [jobTypeModes, setJobTypeModes] = useState({});
+
+  const includedJobTypes = useMemo(
+    () => jobTypes.filter((jt) => jobTypeModes[jt] === 'include'),
+    [jobTypes, jobTypeModes],
+  );
+  const requiredJobTypes = useMemo(
+    () => jobTypes.filter((jt) => jobTypeModes[jt] === 'require'),
+    [jobTypes, jobTypeModes],
+  );
 
   const filtered = useMemo(() => {
     return blocks.filter((b) => {
@@ -12,10 +22,24 @@ export default function BlockLibrary({ blocks, jobTypes, onEditBlock, onDeleteBl
         !searchQuery ||
         JSON.stringify(b.content).toLowerCase().includes(searchQuery.toLowerCase()) ||
         b.type.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesType = !selectedJobType || b.jobTypes.includes(selectedJobType);
-      return matchesSearch && matchesType;
+      const matchesSection = selectedSection === 'all' || b.type === selectedSection;
+      const matchesRequired = requiredJobTypes.every((jt) => b.jobTypes.includes(jt));
+      const matchesIncluded =
+        includedJobTypes.length === 0 ||
+        includedJobTypes.some((jt) => b.jobTypes.includes(jt));
+      return matchesSearch && matchesSection && matchesRequired && matchesIncluded;
     });
-  }, [blocks, searchQuery, selectedJobType]);
+  }, [blocks, searchQuery, selectedSection, includedJobTypes, requiredJobTypes]);
+
+  const cycleJobType = (jt) => {
+    setJobTypeModes((prev) => {
+      const current = prev[jt] || 'off';
+      const next = current === 'off' ? 'include' : current === 'include' ? 'require' : 'off';
+      return { ...prev, [jt]: next };
+    });
+  };
+
+  const clearFilters = () => setJobTypeModes({});
 
   const handleDragStart = (e, blockId) => {
     e.dataTransfer.setData('application/x-block-id', blockId);
@@ -28,34 +52,61 @@ export default function BlockLibrary({ blocks, jobTypes, onEditBlock, onDeleteBl
     e.currentTarget.classList.remove(styles.dragging);
   };
 
+  const isFilterActive = includedJobTypes.length > 0 || requiredJobTypes.length > 0;
+
   return (
     <aside className={styles.panel}>
       <div className={styles.panelHeader}>Block Library</div>
       <div className={styles.panelContent}>
         <div className={styles.toolbar}>
+          <div className={styles.field}>
+            <label htmlFor="section-select">Section</label>
+            <select
+              id="section-select"
+              value={selectedSection}
+              onChange={(e) => setSelectedSection(e.target.value)}
+            >
+              <option value="all">All Sections</option>
+              {SECTION_TYPES.map((s) => (
+                <option key={s.key} value={s.key}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
           <input
             type="text"
             placeholder="Search blocks..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
+
           <div className={styles.filterRow}>
             <span
-              className={`${styles.tag} ${!selectedJobType ? styles.active : ''}`}
-              onClick={() => setSelectedJobType(null)}
+              className={`${styles.tag} ${!isFilterActive ? styles.active : ''}`}
+              onClick={clearFilters}
             >
               All
             </span>
-            {jobTypes.map((jt) => (
-              <span
-                key={jt}
-                className={`${styles.tag} ${selectedJobType === jt ? styles.active : ''}`}
-                onClick={() => setSelectedJobType(jt)}
-              >
-                {jt}
-              </span>
-            ))}
+            {jobTypes.map((jt) => {
+              const mode = jobTypeModes[jt] || 'off';
+              const pillClass = mode === 'require' ? styles.required : mode === 'include' ? styles.active : '';
+              return (
+                <span
+                  key={jt}
+                  className={`${styles.tag} ${pillClass}`}
+                  onClick={() => cycleJobType(jt)}
+                >
+                  {jt}
+                </span>
+              );
+            })}
           </div>
+
+          <p className={styles.filterHint}>
+            Click once to include, twice to require, three times to deselect.
+          </p>
         </div>
 
         <div className={styles.blockList}>

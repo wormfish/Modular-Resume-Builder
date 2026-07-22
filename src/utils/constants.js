@@ -11,6 +11,13 @@ export const DEFAULT_JOB_TYPES = [
   'Research',
 ];
 
+export const SECTION_TYPES = [
+  { key: 'summary', label: 'Summary' },
+  { key: 'experience', label: 'Experience' },
+  { key: 'education', label: 'Education' },
+  { key: 'skills', label: 'Skills' },
+];
+
 export const BLOCK_SCHEMA = {
   summary: {
     label: 'Summary',
