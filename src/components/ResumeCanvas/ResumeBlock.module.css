@@ -1,0 +1,61 @@
+.resumeBlock {
+  position: relative;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 10px;
+  background: #fff;
+  cursor: grab;
+}
+
+.resumeBlock:hover {
+  border-color: var(--primary);
+}
+
+.dragging {
+  opacity: 0.5;
+}
+
+.blockActions {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: none;
+  gap: 4px;
+}
+
+.resumeBlock:hover .blockActions {
+  display: flex;
+}
+
+.iconBtn {
+  background: transparent;
+  border: none;
+  font-size: 16px;
+  padding: 2px 6px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--muted);
+  border-radius: 4px;
+}
+
+.iconBtn:hover {
+  background: #f3f4f6;
+  color: var(--danger);
+}
+
+.entryTitle {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.entrySubtitle {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.entryBody {
+  font-size: 13px;
+  line-height: 1.5;
+}

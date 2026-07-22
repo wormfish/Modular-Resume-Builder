@@ -1,0 +1,61 @@
+@media print {
+  body {
+    background: #fff !important;
+    overflow: visible !important;
+    height: auto !important;
+  }
+
+  /* Hide all UI chrome */
+  [class*='header'],
+  [class*='Header'],
+  aside,
+  [class*='panelLeft'],
+  [class*='panelRight'],
+  [class*='canvasHeader'],
+  [class*='blockActions'],
+  [class*='sectionActions'],
+  [class*='addSection'],
+  [class*='dropHint'] {
+    display: none !important;
+  }
+
+  /* Make the center panel full-width */
+  main {
+    width: 100% !important;
+    height: auto !important;
+    background: #fff !important;
+    overflow: visible !important;
+    flex: none !important;
+  }
+
+  [class*='canvasScroll'] {
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  /* Resume page clean output */
+  [class*='resumePage'] {
+    width: 100% !important;
+    min-height: auto !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  [class*='resumeSection'] {
+    border: none !important;
+    padding: 0 !important;
+    min-height: auto !important;
+  }
+
+  [class*='resumeBlock'] {
+    border: none !important;
+    padding: 0 !important;
+    margin-bottom: 12px !important;
+    cursor: default !important;
+  }
+
+  @page {
+    margin: 15mm;
+  }
+}
