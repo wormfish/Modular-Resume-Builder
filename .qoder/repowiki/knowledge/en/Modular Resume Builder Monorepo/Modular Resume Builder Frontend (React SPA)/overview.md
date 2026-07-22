@@ -1,0 +1,1 @@
+Single-page React application that lets users compose resumes from a library of reusable blocks, with offline-first persistence and optional server sync.

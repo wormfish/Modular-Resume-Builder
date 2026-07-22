@@ -1,0 +1,1 @@
+React 18 with ReactDOM.createRoot, CSS Modules per component, html2canvas + jsPDF for PDF export, native Fetch for REST calls to a MongoDB-backed `/api` backend, and localStorage for offline-first persistence.

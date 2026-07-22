@@ -1,0 +1,1 @@
+Top-level workspace wiring a React SPA and an Express API into one project, with Vite proxying `/api` to the backend during development.

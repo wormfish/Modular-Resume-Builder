@@ -1,0 +1,1 @@
+Node.js + Express (ESM imports) with Mongoose ODM against MongoDB; configuration via `dotenv` (`server/.env`, template `server/.env.example`).

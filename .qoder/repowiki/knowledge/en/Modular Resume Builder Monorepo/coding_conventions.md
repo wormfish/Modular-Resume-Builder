@@ -1,0 +1,2 @@
+- All top-level npm scripts live in the root `package.json`; child modules do not define their own entry points at this level.
+- Backend environment variables are loaded per-process via `--env-file=server/.env` rather than a global dotenv setup.

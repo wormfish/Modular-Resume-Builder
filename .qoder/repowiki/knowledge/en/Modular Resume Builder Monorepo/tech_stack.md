@@ -1,0 +1,1 @@
+Node.js ESM (`"type": "module"`) workspace; Vite + React for the frontend, Express + Mongoose for the backend, both driven from the root `package.json` scripts.

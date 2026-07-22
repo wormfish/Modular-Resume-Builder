@@ -1,0 +1,4 @@
+- Each resource has a paired `models/<Resource>.js` (Mongoose schema + exported model) and `routes/<resource>.js` (Express Router) following a one-file-per-domain pattern.
+- Route handlers are async functions that wrap every database call in try/catch and return `{ error: err.message }` with an appropriate HTTP status code.
+- Create endpoints use `findByIdAndUpdate(id, body, { upsert: true, new: true, setDefaultsOnInsert: true })` so POST acts as a create-or-update idempotent operation.
+- Both Resume and Block store their primary key in `_id` as a client-supplied String rather than relying on Mongoose's auto-generated ObjectId.

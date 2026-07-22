@@ -1,0 +1,1 @@
+Express.js server exposing CRUD APIs for resume documents and their reusable content blocks, persisted in MongoDB via Mongoose.

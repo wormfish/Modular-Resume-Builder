@@ -1,0 +1,15 @@
+schema_version: 1
+module_path: ""
+title: Modular Resume Builder Monorepo
+scope:
+    - README.md
+    - Resume_Builder_PRD.md
+    - .gitignore
+    - index.html
+    - package.json
+    - package-lock.json
+    - vite.config.js
+    - .node-version
+source_files: []
+depends_on: []
+related_to: []

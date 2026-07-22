@@ -1,0 +1,6 @@
+- Each feature folder groups a React component with its scoped stylesheet using the `.module.css` naming convention and imports it as a named styles object (e.g. `import styles from './Foo.module.css'`).
+- All user-facing state lives in `useApiSync` and is persisted through `useLocalStorage` with stable keys prefixed `resume-builder-`; components never read/write localStorage directly.
+- New block types are added declaratively by extending `BLOCK_SCHEMA` in `constants.js` with a `fields` array and a `render` function, instead of adding new branches in render logic.
+- API calls are funneled through the thin `request()` helper in `api/client.js`; callers use exported domain functions (`createBlock`, `saveResume`, …) rather than calling `fetch` directly.
+- State setters that trigger server sync are wrapped variants (`setResumeAndSync`, `setPersonalInfoAndSync`, `setJobTypesAndSync`) returned by `useApiSync`, so mutation and background save are always paired.
+- Long-running async operations (resume save, health checks) guard against unmount races with an `isMounted` ref checked before updating state.

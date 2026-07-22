@@ -1,0 +1,45 @@
+# 知识卡导出索引文件
+schema_version: 1
+locale: en-US
+branch: wh/database
+nodes_managed: true
+exported_at: "2026-07-22T08:31:03Z"
+modules:
+    "":
+        dir_name: Modular Resume Builder Monorepo
+        title: Modular Resume Builder Monorepo
+        scope:
+            - README.md
+            - Resume_Builder_PRD.md
+            - .gitignore
+            - index.html
+            - package.json
+            - package-lock.json
+            - vite.config.js
+            - .node-version
+        source_files: []
+        children:
+            - backend
+            - frontend
+        depends_on: []
+        related_to: []
+    backend:
+        dir_name: Resume & Block REST API Server
+        title: Resume & Block REST API Server
+        scope:
+            - server/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: frontend
+    frontend:
+        dir_name: Modular Resume Builder Frontend (React SPA)
+        title: Modular Resume Builder Frontend (React SPA)
+        scope:
+            - src/
+        source_files: []
+        children: []
+        depends_on: []
+        related_to:
+            - path: backend

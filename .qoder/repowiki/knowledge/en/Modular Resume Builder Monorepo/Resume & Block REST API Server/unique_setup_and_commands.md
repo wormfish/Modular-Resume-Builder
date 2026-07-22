@@ -1,0 +1,1 @@
+Requires a running MongoDB instance and a `MONGODB_URI` env var (defaults to `mongodb://localhost:27017/resume-builder`); server listens on port 3001 unless `PORT` is set. Start with `node server/index.js` from the repo root.

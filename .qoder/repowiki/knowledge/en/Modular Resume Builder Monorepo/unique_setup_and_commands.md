@@ -1,0 +1,1 @@
+`npm run dev:all` launches both the backend (`node --env-file=server/.env server/index.js`) and the Vite dev server concurrently; `npm run server` runs only the API.

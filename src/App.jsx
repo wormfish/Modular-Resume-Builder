@@ -1,13 +1,9 @@
 import { useState, useCallback } from 'react';
-import { useLocalStorage } from './hooks/useLocalStorage';
+import { useApiSync } from './hooks/useApiSync';
 import { useExportPdf } from './hooks/useExportPdf';
+import { useJsonExportImport } from './hooks/useJsonExportImport';
 import {
-  INITIAL_BLOCKS,
-  INITIAL_RESUME,
-  INITIAL_PERSONAL_INFO,
-  DEFAULT_JOB_TYPES,
   SECTION_NAME_SUGGESTIONS,
-  TEMPLATES,
 } from './utils/constants';
 import { generateId } from './utils/id';
 import BlockLibrary from './components/BlockLibrary/BlockLibrary';
@@ -17,16 +13,49 @@ import BlockModal from './components/BlockModal/BlockModal';
 import styles from './App.module.css';
 
 export default function App() {
-  const [blocks, setBlocks] = useLocalStorage('resume-builder-blocks', INITIAL_BLOCKS);
-  const [resume, setResume] = useLocalStorage('resume-builder-canvas', INITIAL_RESUME);
-  const [personalInfo, setPersonalInfo] = useLocalStorage('resume-builder-personal', INITIAL_PERSONAL_INFO);
-  const [jobTypes, setJobTypes] = useLocalStorage('resume-builder-jobtypes', [...DEFAULT_JOB_TYPES]);
+  const {
+    blocks,
+    setBlocks,
+    resume,
+    setResume,
+    personalInfo,
+    setPersonalInfo,
+    jobTypes,
+    setJobTypes,
+    isOnline,
+    syncBlockCreate,
+    syncBlockUpdate,
+    syncBlockDelete,
+  } = useApiSync();
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingBlockId, setEditingBlockId] = useState(null);
   const [tempBlock, setTempBlock] = useState({ type: 'summary', content: {}, jobTypes: [] });
 
   const exportPdf = useExportPdf();
+
+  // ---------- JSON Export/Import ----------
+
+  const getData = useCallback(
+    () => ({ blocks, resume, personalInfo, jobTypes }),
+    [blocks, resume, personalInfo, jobTypes],
+  );
+
+  const setData = useCallback(
+    (data) => {
+      if (data.blocks) setBlocks(data.blocks);
+      if (data.resume) setResume(data.resume);
+      if (data.personalInfo) setPersonalInfo(data.personalInfo);
+      if (data.jobTypes) setJobTypes(data.jobTypes);
+    },
+    [setBlocks, setResume, setPersonalInfo, setJobTypes],
+  );
+
+  const {
+    exportJson, importJson, fileInputRef, handleFileChange,
+    exportBlocks, importBlocks, blocksInputRef, handleBlocksFileChange,
+    exportResume, importResume, resumeInputRef, handleResumeFileChange,
+  } = useJsonExportImport(getData, setData, syncBlockCreate);
 
   // ---------- Block CRUD ----------
 
@@ -54,11 +83,14 @@ export default function App() {
       setBlocks((prev) =>
         prev.map((b) => (b.id === editingBlockId ? { ...tempBlock, id: editingBlockId } : b)),
       );
+      syncBlockUpdate(editingBlockId, tempBlock);
     } else {
-      setBlocks((prev) => [...prev, { ...tempBlock, id: generateId() }]);
+      const newBlock = { ...tempBlock, id: generateId() };
+      setBlocks((prev) => [...prev, newBlock]);
+      syncBlockCreate(newBlock);
     }
     closeModal();
-  }, [editingBlockId, tempBlock, setBlocks, closeModal]);
+  }, [editingBlockId, tempBlock, setBlocks, closeModal, syncBlockCreate, syncBlockUpdate]);
 
   const deleteBlock = useCallback((blockId) => {
     if (!confirm('Delete this block from the library? It will also be removed from any resume using it.')) return;
@@ -70,7 +102,8 @@ export default function App() {
         blockIds: s.blockIds.filter((id) => id !== blockId),
       })),
     }));
-  }, [setBlocks, setResume]);
+    syncBlockDelete(blockId);
+  }, [setBlocks, setResume, syncBlockDelete]);
 
   // ---------- Job Types ----------
 
@@ -184,9 +217,42 @@ export default function App() {
       <header className={styles.header}>
         <h1 className={styles.headerTitle}>Modular Resume Builder</h1>
         <div className={styles.headerActions}>
+          <span
+            className={styles.syncIndicator}
+            title={isOnline === false ? 'Offline – changes saved locally only' : isOnline ? 'Connected to server' : 'Checking connection…'}
+          >
+            {isOnline === false ? '⚠ Offline' : isOnline ? '● Online' : '…'}
+          </span>
+          <button onClick={importJson}>Import JSON</button>
+          <button onClick={exportJson}>Export JSON</button>
+          <button onClick={importBlocks}>Import Blocks</button>
+          <button onClick={exportBlocks}>Export Blocks</button>
+          <button onClick={importResume}>Import Resume</button>
+          <button onClick={exportResume}>Export Resume</button>
           <button onClick={exportPdf}>Export PDF</button>
           <button className={styles.primary} onClick={openNewBlockModal}>+ New Block</button>
         </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".json"
+          style={{ display: 'none' }}
+          onChange={handleFileChange}
+        />
+        <input
+          ref={blocksInputRef}
+          type="file"
+          accept=".json"
+          style={{ display: 'none' }}
+          onChange={handleBlocksFileChange}
+        />
+        <input
+          ref={resumeInputRef}
+          type="file"
+          accept=".json"
+          style={{ display: 'none' }}
+          onChange={handleResumeFileChange}
+        />
       </header>
 
       <div className={styles.body}>
