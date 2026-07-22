@@ -86,7 +86,11 @@ export default function ResumeCanvas({
         <div className={`${styles.resumePage} ${styles[template.className] || ''}`}>
           <div className={styles.resumeHeader}>
             <div className={styles.resumeName}>{personalInfo.name}</div>
-            <div className={styles.resumeContact}>{personalInfo.contact}</div>
+            <div className={styles.resumeContact}>
+              {[personalInfo.email, personalInfo.phone, personalInfo.location]
+                .filter((v) => v && v.trim())
+                .join(' · ')}
+            </div>
           </div>
 
           {resume.sections.map((section) => (

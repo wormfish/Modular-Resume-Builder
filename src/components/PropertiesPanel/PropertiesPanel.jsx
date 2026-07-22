@@ -31,10 +31,26 @@ export default function PropertiesPanel({ resume, personalInfo, onSetTemplate, o
         </div>
         <div className={styles.field}>
           <input
+            type="email"
+            placeholder="Email"
+            value={personalInfo.email}
+            onChange={(e) => onUpdatePersonalInfo('email', e.target.value)}
+          />
+        </div>
+        <div className={styles.field}>
+          <input
+            type="tel"
+            placeholder="Phone"
+            value={personalInfo.phone}
+            onChange={(e) => onUpdatePersonalInfo('phone', e.target.value)}
+          />
+        </div>
+        <div className={styles.field}>
+          <input
             type="text"
-            placeholder="Email · Phone · Location"
-            value={personalInfo.contact}
-            onChange={(e) => onUpdatePersonalInfo('contact', e.target.value)}
+            placeholder="Location"
+            value={personalInfo.location}
+            onChange={(e) => onUpdatePersonalInfo('location', e.target.value)}
           />
         </div>
 
