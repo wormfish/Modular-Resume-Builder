@@ -31,10 +31,12 @@ export default function BlockLibrary({ blocks, jobTypes, onEditBlock, onDeleteBl
     });
   }, [blocks, searchQuery, selectedSection, includedJobTypes, requiredJobTypes]);
 
+  const CYCLE = { off: 'include', include: 'require', require: 'off' };
+
   const cycleJobType = (jt) => {
     setJobTypeModes((prev) => {
       const current = prev[jt] || 'off';
-      const next = current === 'off' ? 'include' : current === 'include' ? 'require' : 'off';
+      const next = CYCLE[current];
       return { ...prev, [jt]: next };
     });
   };
