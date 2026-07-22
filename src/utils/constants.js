@@ -164,7 +164,9 @@ export const INITIAL_RESUME = {
 
 export const INITIAL_PERSONAL_INFO = {
   name: 'Your Name',
-  contact: 'your.email@example.com · City, Country · (123) 456-7890',
+  email: 'your.email@example.com',
+  phone: '(123) 456-7890',
+  location: 'City, Country',
 };
 
 export const SECTION_NAME_SUGGESTIONS = [
