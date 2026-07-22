@@ -37,6 +37,7 @@
     overflow: visible !important;
     flex: none !important;
     display: block !important;
+    border: none !important;
   }
 
   [class*='canvasScroll'] {
