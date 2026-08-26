@@ -48,6 +48,24 @@
   flex-shrink: 0;
 }
 
+/* Compact "new block" action pinned to the right of the panel header */
+.newBlockBtn {
+  margin-left: auto;
+  flex-shrink: 0;
+  padding: 4px 10px;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 2px 2px 0 var(--ink);
+}
+
+.newBlockBtn:hover {
+  background: var(--primary-deep);
+  box-shadow: 3px 3px 0 var(--ink);
+}
+
 .dropZone {
   flex: 1;
   position: relative;

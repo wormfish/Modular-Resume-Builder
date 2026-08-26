@@ -1,31 +1,15 @@
 import mongoose from 'mongoose';
 
-// Default job types seeded for new accounts (schema default) and backfilled
-// once for pre-existing accounts that never received them.
-// IMPORTANT: Keep in sync with api/lib/models/User.js and src/utils/constants.js (DEFAULT_JOB_TYPES_MAP).
-export const DEFAULT_JOB_TYPES = {
-  jt1: 'Software Development',
-  jt2: 'Management',
-  jt3: 'Technical Skills',
-  jt4: 'Design',
-  jt5: 'Product Management',
-  jt6: 'Data Science',
-  jt7: 'Marketing',
-  jt8: 'Sales',
-  jt9: 'Operations',
-  jt10: 'Research',
-};
-
 const userSchema = new mongoose.Schema(
   {
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     passwordHash: { type: String, required: true },
     // Job types dictionary: { "jt1": "Software Development", "jt2": "Management", ... }
-    // New users get these defaults on insert; deleting all job types stays deleted.
-    jobTypes: { type: Map, of: String, default: DEFAULT_JOB_TYPES },
-    // Set to true once an account has received its default job types, so the
-    // one-time backfill never re-runs (including after the user deletes them all).
-    jobTypesInitialized: { type: Boolean, default: false },
+    // New accounts start with no job types; the user adds them from the dashboard.
+    jobTypes: { type: Map, of: String, default: () => new Map() },
+    // Marks whether an account was ever initialized. True by default so a
+    // brand-new account (empty dictionary) is never backfilled with defaults.
+    jobTypesInitialized: { type: Boolean, default: true },
     // Saved personal details used to prefill new resumes ("Save as Default" in
     // the builder, editable from the Dashboard account modal). Empty until set.
     defaultPersonalInfo: {

@@ -99,7 +99,7 @@
     display: flex !important;
     align-items: center !important;
     margin-bottom: 6px !important;
-    border-bottom: 1px solid #ccc !important;
+    border-bottom: 2px solid #222 !important;
     padding-bottom: 4px !important;
   }
 

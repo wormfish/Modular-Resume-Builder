@@ -99,11 +99,11 @@ export default function ResumeCanvas({
             </div>
           </div>
 
-          {sectionOrder.map((sectionTitle) => {
+          {sectionOrder.map((sectionTitle, sectionIdx) => {
             const blockIds = sections[sectionTitle] || [];
             return (
               <div
-                key={sectionTitle}
+                key={sectionIdx}
                 className={`${styles.resumeSection} ${dragOverSection === sectionTitle ? styles.dragOver : ''}`}
                 onDragOver={(e) => handleDragOver(e, sectionTitle)}
                 onDrop={(e) => handleDrop(e, sectionTitle)}
@@ -139,7 +139,7 @@ export default function ResumeCanvas({
 
                   return (
                     <ResumeBlock
-                      key={`${sectionTitle}-${blockId}-${idx}`}
+                      key={blockId}
                       blockId={blockId}
                       blockType={block.type}
                       sectionId={sectionTitle}

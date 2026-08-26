@@ -3,7 +3,7 @@ import { BLOCK_SCHEMA, SECTION_TYPES } from '../../utils/constants';
 import { DRAG_KEYS, DRAG_SOURCE } from '../../utils/dragKeys';
 import styles from './BlockLibrary.module.css';
 
-export default function BlockLibrary({ blocks, jobTypes, onEditBlock, onDuplicateBlock, onDeleteBlock, onRemoveBlockFromResume = () => {}, isCanvasBlockDragging = false, onCanvasDragEnd }) {
+export default function BlockLibrary({ blocks, jobTypes, onNewBlock, onEditBlock, onDuplicateBlock, onDeleteBlock, onRemoveBlockFromResume = () => {}, isCanvasBlockDragging = false, onCanvasDragEnd }) {
   // jobTypes is now an object: { jt1: "Software Development", ... }
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSection, setSelectedSection] = useState('all');
@@ -127,7 +127,12 @@ export default function BlockLibrary({ blocks, jobTypes, onEditBlock, onDuplicat
       className={styles.panel}
       data-print-hide
     >
-      <div className={styles.panelHeader}>Block Library</div>
+      <div className={styles.panelHeader}>
+        Block Library
+        <button className={styles.newBlockBtn} onClick={onNewBlock} title="Create a new block">
+          + New Block
+        </button>
+      </div>
       <div
         className={`${styles.dropZone} ${dragOver ? styles.dropActive : ''}`}
         onDragOver={handleDropZoneDragOver}

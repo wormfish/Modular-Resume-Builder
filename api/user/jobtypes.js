@@ -1,5 +1,5 @@
 import { connectToDatabase } from '../../api-lib/db.js';
-import User, { DEFAULT_JOB_TYPES } from '../../api-lib/models/User.js';
+import User from '../../api-lib/models/User.js';
 import { requireAuth } from '../../api-lib/auth.js';
 
 export default async function handler(req, res) {
@@ -12,16 +12,6 @@ export default async function handler(req, res) {
     const dbUser = await User.findOne({ email: user.email });
     if (!dbUser) {
       return res.status(404).json({ error: 'User not found' });
-    }
-
-    // One-time backfill: accounts created before the schema-default change
-    // have jobTypes stored as {} and would otherwise stay empty forever.
-    if (!dbUser.jobTypesInitialized) {
-      if (!dbUser.jobTypes || dbUser.jobTypes.size === 0) {
-        dbUser.jobTypes = new Map(Object.entries(DEFAULT_JOB_TYPES));
-      }
-      dbUser.jobTypesInitialized = true;
-      await dbUser.save();
     }
 
     if (req.method === 'GET') {

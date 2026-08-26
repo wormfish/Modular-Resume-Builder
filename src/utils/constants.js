@@ -1,22 +1,3 @@
-// Default job types dictionary: { id: name }
-// Used as a client-side fallback when the API fetch fails.
-// IMPORTANT: Keep in sync with server/models/User.js and api/lib/models/User.js (DEFAULT_JOB_TYPES).
-export const DEFAULT_JOB_TYPES_MAP = {
-  jt1: 'Software Development',
-  jt2: 'Management',
-  jt3: 'Technical Skills',
-  jt4: 'Design',
-  jt5: 'Product Management',
-  jt6: 'Data Science',
-  jt7: 'Marketing',
-  jt8: 'Sales',
-  jt9: 'Operations',
-  jt10: 'Research',
-};
-
-// Legacy array for backwards compatibility (will be removed after migration)
-export const DEFAULT_JOB_TYPES = Object.values(DEFAULT_JOB_TYPES_MAP);
-
 // Owner identifier — will be replaced by real auth later
 export const DEFAULT_OWNER = 'kit@catship.nya';
 

@@ -186,16 +186,6 @@ label {
   cursor: not-allowed;
 }
 
-.primary {
-  background: var(--primary) !important;
-  color: #fff !important;
-  border-color: var(--ink) !important;
-}
-
-.primary:hover {
-  background: var(--primary-deep) !important;
-}
-
 /* ── Body ── */
 .body {
   display: flex;

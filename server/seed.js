@@ -127,7 +127,7 @@ async function seed() {
     await user.save();
     console.log(`Updated job types for "${OWNER}": ${Object.keys(jobTypes).length} types`);
   } else {
-    console.log(`User "${OWNER}" not found. Job types will be seeded on first login.`);
+    console.log(`User "${OWNER}" not found — skipping job types. Register the account (or run server/seed-demo.js), then re-run seed.`);
   }
 
   // --- Blocks ---

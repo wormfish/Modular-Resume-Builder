@@ -7,7 +7,6 @@ import {
   INITIAL_RESUME,
   BLANK_RESUME,
   BLANK_BLOCKS,
-  DEFAULT_JOB_TYPES_MAP,
   SECTION_NAME_SUGGESTIONS,
   DEFAULT_OWNER,
   BLOCK_SCHEMA,
@@ -113,7 +112,7 @@ export default function App() {
           return;
         }
         console.error('Failed to fetch job types:', err);
-        setJobTypes(DEFAULT_JOB_TYPES_MAP);
+        setJobTypes({});
       });
   }, [user?.email, navigate]);
 
@@ -970,7 +969,6 @@ export default function App() {
           >
             {saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? '✓ Saved' : saveStatus === 'error' ? 'Save Failed' : 'Save'}
           </button>
-          <button className={styles.primary} onClick={openNewBlockModal}>+ New Block</button>
         </div>
       </header>
 
@@ -978,6 +976,7 @@ export default function App() {
         <BlockLibrary
           blocks={blocks}
           jobTypes={jobTypes}
+          onNewBlock={openNewBlockModal}
           onEditBlock={openEditBlockModal}
           onDuplicateBlock={duplicateBlock}
           onDeleteBlock={deleteBlock}
