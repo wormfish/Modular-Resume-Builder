@@ -89,7 +89,7 @@ ${jd ? '- When relevant, compare the resume against the job description: keyword
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'meta/llama-3.1-70b-instruct',
+        model: 'meta/llama-3.2-11b-vision-instruct',
         messages: [{ role: 'system', content: systemPrompt }, ...history],
         temperature: 0.5,
         max_tokens: 500,

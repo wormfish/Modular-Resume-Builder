@@ -36,7 +36,7 @@ Return ONLY a JSON array of keywords, no other text:`;
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'meta/llama-3.1-70b-instruct',
+        model: 'meta/llama-3.2-11b-vision-instruct',
         messages: [
           {
             role: 'user',

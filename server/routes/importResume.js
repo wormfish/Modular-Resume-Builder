@@ -52,7 +52,7 @@ router.post('/', requireAuth, async (req, res) => {
         'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: 'meta/llama-3.1-70b-instruct',
+        model: 'meta/llama-3.2-11b-vision-instruct',
         messages: [{ role: 'user', content: PROMPT_PREFIX + String(text).slice(0, 24000) }],
         temperature: 0.1,
         max_tokens: 3000,
