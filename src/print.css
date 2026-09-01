@@ -123,11 +123,25 @@
   [class*='resumeBlock'] {
     border: none !important;
     padding: 0 !important;
-    margin-bottom: 10px !important;
+    margin-bottom: 18px !important;
     cursor: default !important;
     background: transparent !important;
     box-shadow: none !important;
     outline: none !important;
+  }
+
+  [class*='entryHeader'] {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: baseline !important;
+    margin-bottom: 0px !important;
+  }
+
+  [class*='entrySubHeader'] {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: baseline !important;
+    margin-bottom: 2px !important;
   }
 
   [class*='entryTitle'] {
@@ -136,19 +150,29 @@
     font-size: 14px !important;
   }
 
+  [class*='entryLocation'] {
+    color: #000 !important;
+    font-weight: 700 !important;
+    font-size: 14px !important;
+  }
+
   [class*='entrySubtitle'] {
     color: #444 !important;
     font-size: 13px !important;
-    margin-bottom: 2px !important;
+  }
+
+  [class*='entryDates'] {
+    color: #444 !important;
+    font-size: 13px !important;
   }
 
   [class*='entryBody'] {
     color: #222 !important;
     font-size: 13px !important;
-    line-height: 1.5 !important;
+    line-height: 1.35 !important;
   }
 
   [class*='entryBody'] p {
-    margin: 0 0 3px 0 !important;
+    margin: 0 0 2px 0 !important;
   }
 }

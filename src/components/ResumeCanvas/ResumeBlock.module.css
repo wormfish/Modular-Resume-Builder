@@ -5,7 +5,7 @@
   padding: 10px 12px 10px 16px;
   border: 1.5px solid var(--border);
   border-radius: var(--radius);
-  margin-bottom: 10px;
+  margin-bottom: 18px;
   background: #fff;
   cursor: grab;
   transition: border-color 0.12s, box-shadow 0.12s;
@@ -105,7 +105,26 @@
   box-shadow: none;
 }
 
+.entryHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 0px;
+}
+
+.entrySubHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 2px;
+}
+
 .entryTitle {
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.entryLocation {
   font-weight: 700;
   font-size: 14px;
 }
@@ -113,10 +132,14 @@
 .entrySubtitle {
   font-size: 13px;
   color: var(--muted);
-  margin-bottom: 4px;
+}
+
+.entryDates {
+  font-size: 13px;
+  color: var(--muted);
 }
 
 .entryBody {
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 1.35;
 }

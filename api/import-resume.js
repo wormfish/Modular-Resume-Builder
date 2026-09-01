@@ -13,6 +13,7 @@ Return ONLY valid JSON (no markdown, no commentary) matching:
 }
 Rules:
 - One experience block per job, one education block per entry; keep every bullet point in the description.
+- Treat "Projects", "Co-curricular Activities", "Extracurriculars", "Volunteering", or "Leadership" sections as "experience" blocks.
 - Use only the four block types above. Skip sections that fit none of them.
 - Leave unknown fields as empty strings. Dates as they appear (e.g. "Jan 2021", "Present").
 

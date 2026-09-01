@@ -32,7 +32,8 @@ export const BLOCK_SCHEMA = {
     ],
     render: (b) => ({
       title: b.role || 'Role',
-      subtitle: `${b.company || ''}${b.company && b.location ? ' — ' : ''}${b.location || ''}`,
+      subtitle: b.company || '',
+      location: b.location || '',
       dates: `${b.startDate || ''}${b.startDate && b.endDate ? ' – ' : ''}${b.endDate || ''}`,
       body: b.description || '',
     }),
@@ -43,6 +44,7 @@ export const BLOCK_SCHEMA = {
       { name: 'institution', label: 'Institution', type: 'text' },
       { name: 'degree', label: 'Degree', type: 'text' },
       { name: 'field', label: 'Field of Study', type: 'text' },
+      { name: 'location', label: 'Location', type: 'text' },
       { name: 'startDate', label: 'Start Date', type: 'text' },
       { name: 'endDate', label: 'End Date', type: 'text' },
       { name: 'gpa', label: 'GPA / Honors', type: 'text' },
@@ -50,6 +52,7 @@ export const BLOCK_SCHEMA = {
     render: (b) => ({
       title: b.institution || 'Institution',
       subtitle: `${b.degree || ''}${b.degree && b.field ? ', ' : ''}${b.field || ''}`,
+      location: b.location || '',
       dates: `${b.startDate || ''}${b.startDate && b.endDate ? ' – ' : ''}${b.endDate || ''}`,
       body: b.gpa || '',
     }),

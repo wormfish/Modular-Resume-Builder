@@ -68,7 +68,7 @@ export default function ResumeCanvas({
       .split('\n')
       .filter((line) => line.trim())
       .map((line, i) => (
-        <p key={i} style={{ margin: '0 0 4px 0' }}>
+        <p key={i} style={{ margin: '0 0 2px 0' }}>
           {line}
         </p>
       ));
