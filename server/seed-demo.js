@@ -126,29 +126,73 @@ const blocks = [
     id: 'demo-b10',
     type: 'skills',
     jobTypeIds: ['jt3', 'jt1', 'jt4'],
+    name: 'Frontend Skills',
     category: 'Frontend',
     skills: 'React, TypeScript, JavaScript (ES2023), Next.js, HTML5, CSS3, Accessibility (WCAG), Jest, Cypress',
+    items: [
+      { category: 'Frontend', skills: 'React, TypeScript, JavaScript (ES2023), Next.js, HTML5, CSS3, Accessibility (WCAG), Jest, Cypress' },
+    ],
   },
   {
     id: 'demo-b11',
     type: 'skills',
     jobTypeIds: ['jt3', 'jt1'],
+    name: 'Backend & Cloud',
     category: 'Backend & Cloud',
     skills: 'Node.js, Express, REST APIs, PostgreSQL, MongoDB, AWS (EC2, S3, Lambda, RDS), Docker, GitHub Actions CI/CD',
+    items: [
+      { category: 'Backend & Cloud', skills: 'Node.js, Express, REST APIs, PostgreSQL, MongoDB, AWS (EC2, S3, Lambda, RDS), Docker, GitHub Actions CI/CD' },
+    ],
   },
   {
     id: 'demo-b12',
     type: 'skills',
     jobTypeIds: ['jt3', 'jt6'],
+    name: 'Data Engineering',
     category: 'Data Engineering',
     skills: 'Python, SQL, Apache Airflow, dbt, Apache Spark, ETL/ELT pipelines, Data warehouse modeling, Pandas',
+    items: [
+      { category: 'Data Engineering', skills: 'Python, SQL, Apache Airflow, dbt, Apache Spark, ETL/ELT pipelines, Data warehouse modeling, Pandas' },
+    ],
   },
   {
     id: 'demo-b13',
     type: 'skills',
     jobTypeIds: ['jt3', 'jt2'],
+    name: 'Leadership & Delivery',
     category: 'Leadership & Delivery',
     skills: 'Agile/Scrum, Mentoring, Hiring, Roadmapping, Stakeholder communication, OKRs, Technical writing',
+    items: [
+      { category: 'Leadership & Delivery', skills: 'Agile/Scrum, Mentoring, Hiring, Roadmapping, Stakeholder communication, OKRs, Technical writing' },
+    ],
+  },
+
+  // Projects
+  {
+    id: 'demo-b14',
+    type: 'projects',
+    jobTypeIds: ['jt1', 'jt3'],
+    role: 'Lead Architect & Creator',
+    company: 'LogStream Analytics Engine',
+    location: 'github.com/jordanavery/logstream',
+    startDate: '2023',
+    endDate: 'Present',
+    description:
+      'Open-source distributed log processor handling 50k events/sec. Implemented zero-copy JSON parsing in Rust with Node.js bindings; adopted by 15+ engineering teams.',
+  },
+
+  // CCA / Extracurriculars
+  {
+    id: 'demo-b15',
+    type: 'cca',
+    jobTypeIds: ['jt2', 'jt1'],
+    role: 'Co-Organizer & Technical Mentor',
+    company: 'Pacific NW Student Hackathon',
+    location: 'Seattle, WA',
+    startDate: '2020',
+    endDate: '2023',
+    description:
+      'Directed 48-hour annual hackathon for 350+ university and bootcamp students. Coordinated sponsorships with AWS and Microsoft; mentored 12 student finalist teams.',
   },
 ];
 

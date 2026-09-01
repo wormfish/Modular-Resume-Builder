@@ -194,6 +194,14 @@
   background: var(--pink);
 }
 
+.blockCard[data-block-type='projects']::before {
+  background: var(--purple);
+}
+
+.blockCard[data-block-type='cca']::before {
+  background: var(--teal);
+}
+
 .blockCard[data-block-type='education']::before {
   background: var(--yellow);
 }

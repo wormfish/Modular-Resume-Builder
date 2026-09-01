@@ -101,16 +101,16 @@
 }
 
 .resumeName {
-  font-size: 32px;
+  font-size: 24px;
   font-weight: 800;
   margin-bottom: 4px;
   color: #111827;
 }
 
 .resumeContact {
-  font-size: 13px;
+  font-size: 11.5px;
   color: var(--muted);
-  margin-bottom: 18px;
+  margin-bottom: 16px;
 }
 
 .resumeSection {
@@ -132,6 +132,8 @@
   align-items: center;
   justify-content: space-between;
   margin-bottom: 8px;
+  border-bottom: 2px solid #000;
+  padding-bottom: 4px;
 }
 
 .sectionTitle {
@@ -140,7 +142,7 @@
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--ink);
+  color: #000;
   border: var(--border-w) dashed transparent;
   background: transparent;
   padding: 4px 6px;
@@ -209,7 +211,7 @@
 
 /* Template: Modern */
 .template-modern .resumeName {
-  font-size: 32px;
+  font-size: 24px;
   font-weight: 800;
   color: #111827;
 }
@@ -220,11 +222,15 @@
 }
 
 .template-classic .resumeName {
-  font-size: 28px;
+  font-size: 22px;
   font-weight: 700;
   text-align: center;
 }
 
 .template-classic .resumeContact {
   text-align: center;
+}
+
+.template-classic .sectionTitle {
+  font-family: Georgia, 'Times New Roman', serif;
 }

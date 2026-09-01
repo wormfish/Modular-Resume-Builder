@@ -85,9 +85,42 @@ const blocks = [
     owner: OWNER,
     type: 'skills',
     jobTypeIds: ['jt3', 'jt1'],
+    name: 'Technical Skills',
     content: {
       category: 'Technical Skills',
-      skills: 'JavaScript, TypeScript, React, Node.js, Python, SQL, AWS, Docker',
+      skills: 'Languages: JavaScript, TypeScript, Python, SQL\nCloud & Tools: AWS, Docker, Git, CI/CD',
+      items: [
+        { category: 'Languages', skills: 'JavaScript, TypeScript, React, Node.js, Python, SQL' },
+        { category: 'Cloud & Tools', skills: 'AWS, Docker, Git, CI/CD' },
+      ],
+    },
+  },
+  {
+    _id: 'b6',
+    owner: OWNER,
+    type: 'projects',
+    jobTypeIds: ['jt1', 'jt3'],
+    content: {
+      role: 'Creator & Maintainer',
+      company: 'Open-Source Markdown Engine',
+      location: 'github.com/example/engine',
+      startDate: '2022',
+      endDate: 'Present',
+      description: 'Built a high-performance streaming markdown parser in TypeScript with 2,000+ GitHub stars.',
+    },
+  },
+  {
+    _id: 'b7',
+    owner: OWNER,
+    type: 'cca',
+    jobTypeIds: ['jt2'],
+    content: {
+      role: 'President',
+      company: 'University Computing Society',
+      location: 'Campus Chapter',
+      startDate: '2014',
+      endDate: '2016',
+      description: 'Organized annual 48-hour national hackathon with 400+ participants and raised $25k in industry sponsorships.',
     },
   },
 ];

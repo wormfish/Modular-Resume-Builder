@@ -14,8 +14,86 @@ export default function BlockModal({
   onClose,
 }) {
   const [newJobTypeName, setNewJobTypeName] = useState('');
+  const [draggedSkillIdx, setDraggedSkillIdx] = useState(null);
   const schema = BLOCK_SCHEMA[tempBlock.type];
   const jobTypeIds = tempBlock.jobTypeIds || [];
+
+  // Parse legacy skills into items array if needed
+  const getSkillItems = () => {
+    if (Array.isArray(tempBlock.items) && tempBlock.items.length > 0) {
+      return tempBlock.items;
+    }
+    const rawSkills = String(tempBlock.skills || '');
+    const lines = rawSkills.split('\n').map((l) => l.trim()).filter(Boolean);
+    if (lines.length > 1 && lines.some((l) => l.includes(':'))) {
+      return lines.map((l) => {
+        const colonIdx = l.indexOf(':');
+        if (colonIdx !== -1) {
+          const cat = l.slice(0, colonIdx).replace(/^[•\-\*]\s*/, '').trim();
+          const val = l.slice(colonIdx + 1).trim();
+          return { category: cat, skills: val };
+        }
+        return { category: '', skills: l.replace(/^[•\-\*]\s*/, '').trim() };
+      });
+    }
+    return [{ category: tempBlock.category || '', skills: rawSkills }];
+  };
+
+  const skillItems = tempBlock.type === 'skills' ? getSkillItems() : [];
+
+  const updateSkillItems = (newItems) => {
+    const flatSkills = newItems
+      .filter((i) => i.category?.trim() || i.skills?.trim())
+      .map((i) => (i.category?.trim() ? `${i.category.trim()}: ${i.skills || ''}` : i.skills || ''))
+      .join('\n');
+    setTempBlock((prev) => ({
+      ...prev,
+      items: newItems,
+      category: newItems[0]?.category || '',
+      skills: flatSkills,
+    }));
+  };
+
+  const handleSkillItemChange = (index, field, value) => {
+    const next = skillItems.map((item, i) => (i === index ? { ...item, [field]: value } : item));
+    updateSkillItems(next);
+  };
+
+  const handleAddSkillItem = () => {
+    const next = [...skillItems, { category: '', skills: '' }];
+    updateSkillItems(next);
+  };
+
+  const handleRemoveSkillItem = (index) => {
+    const next = skillItems.filter((_, i) => i !== index);
+    updateSkillItems(next.length ? next : [{ category: '', skills: '' }]);
+  };
+
+  const handleSkillDragStart = (e, index) => {
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', String(index));
+    setDraggedSkillIdx(index);
+  };
+
+  const handleSkillDragOver = (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+  };
+
+  const handleSkillDrop = (e, targetIndex) => {
+    e.preventDefault();
+    if (draggedSkillIdx === null || draggedSkillIdx === targetIndex) return;
+    const next = [...skillItems];
+    const [moved] = next.splice(draggedSkillIdx, 1);
+    next.splice(targetIndex, 0, moved);
+    updateSkillItems(next);
+    setDraggedSkillIdx(null);
+  };
+
+  const handleSkillDragEnd = () => {
+    setDraggedSkillIdx(null);
+  };
+
   // Two variant kinds:
   //  - resume variant: resumeId set — lives only on one resume.
   //  - child variant: variantOf set, no resumeId — lives in the library
@@ -35,6 +113,9 @@ export default function BlockModal({
     // type; identity (id/name), job types and variant markers are kept.
     const { id, name, jobTypeIds: jtIds, resumeId, variantOf } = tempBlock;
     const next = { type: nextType, jobTypeIds: jtIds || [] };
+    if (nextType === 'skills') {
+      next.items = [{ category: '', skills: '' }];
+    }
     if (id !== undefined) next.id = id;
     if (name !== undefined) next.name = name;
     if (resumeId !== undefined) next.resumeId = resumeId;
@@ -126,23 +207,82 @@ export default function BlockModal({
             )}
           </div>
 
-          {schema.fields.map((field) => (
-            <div key={field.name} className={styles.field}>
-              <label>{field.label}</label>
-              {field.type === 'textarea' ? (
-                <textarea
-                  value={tempBlock[field.name] || ''}
-                  onChange={(e) => handleFieldChange(field.name, e.target.value)}
-                />
-              ) : (
-                <input
-                  type="text"
-                  value={tempBlock[field.name] || ''}
-                  onChange={(e) => handleFieldChange(field.name, e.target.value)}
-                />
-              )}
+          {tempBlock.type === 'skills' ? (
+            <div className={styles.skillsBuilder}>
+              <div className={styles.skillsBuilderHeader}>
+                <label>Skills & Categories</label>
+                <span className={styles.nameHint}>
+                  Add categories (e.g. Languages, Tools) or leave Category empty for simple bullet points. Drag ☰ to reorder.
+                </span>
+              </div>
+              <div className={styles.skillsList}>
+                {skillItems.map((item, idx) => (
+                  <div
+                    key={idx}
+                    className={`${styles.skillRow} ${draggedSkillIdx === idx ? styles.skillRowDragging : ''}`}
+                    draggable
+                    onDragStart={(e) => handleSkillDragStart(e, idx)}
+                    onDragOver={handleSkillDragOver}
+                    onDrop={(e) => handleSkillDrop(e, idx)}
+                    onDragEnd={handleSkillDragEnd}
+                  >
+                    <span className={styles.dragHandle} title="Drag to reorder">
+                      &#9776;
+                    </span>
+                    <input
+                      type="text"
+                      className={styles.catInput}
+                      placeholder="Category (e.g. Languages)"
+                      value={item.category || ''}
+                      onChange={(e) => handleSkillItemChange(idx, 'category', e.target.value)}
+                    />
+                    <span className={styles.colonLabel}>:</span>
+                    <input
+                      type="text"
+                      className={styles.skillInput}
+                      placeholder="Skills (e.g. JavaScript, Python, SQL)"
+                      value={item.skills || ''}
+                      onChange={(e) => handleSkillItemChange(idx, 'skills', e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      className={styles.removeSkillBtn}
+                      onClick={() => handleRemoveSkillItem(idx)}
+                      title="Remove row"
+                      disabled={skillItems.length <= 1 && !item.category && !item.skills}
+                    >
+                      &times;
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <button
+                type="button"
+                className={styles.addSkillBtn}
+                onClick={handleAddSkillItem}
+              >
+                + Add Category
+              </button>
             </div>
-          ))}
+          ) : (
+            schema.fields.map((field) => (
+              <div key={field.name} className={styles.field}>
+                <label>{field.label}</label>
+                {field.type === 'textarea' ? (
+                  <textarea
+                    value={tempBlock[field.name] || ''}
+                    onChange={(e) => handleFieldChange(field.name, e.target.value)}
+                  />
+                ) : (
+                  <input
+                    type="text"
+                    value={tempBlock[field.name] || ''}
+                    onChange={(e) => handleFieldChange(field.name, e.target.value)}
+                  />
+                )}
+              </div>
+            ))
+          )}
 
           <div className={styles.field}>
             <label>Job Types</label>

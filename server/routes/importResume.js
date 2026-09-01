@@ -10,14 +10,17 @@ Return ONLY valid JSON (no markdown, no commentary) matching:
   "blocks": [
     { "type": "summary", "name": "Summary", "fields": { "headline": "", "body": "" } },
     { "type": "experience", "name": "<Role> — <Company>", "fields": { "role": "", "company": "", "location": "", "startDate": "", "endDate": "", "description": "• bullet\\n• bullet" } },
+    { "type": "projects", "name": "<Role> — <Project/Org>", "fields": { "role": "", "company": "", "location": "", "startDate": "", "endDate": "", "description": "• bullet\\n• bullet" } },
+    { "type": "cca", "name": "<Role> — <Club/Org>", "fields": { "role": "", "company": "", "location": "", "startDate": "", "endDate": "", "description": "• bullet\\n• bullet" } },
     { "type": "education", "name": "<Degree> — <Institution>", "fields": { "institution": "", "degree": "", "field": "", "startDate": "", "endDate": "", "gpa": "" } },
-    { "type": "skills", "name": "Skills", "fields": { "category": "", "skills": "comma, separated, list" } }
+    { "type": "skills", "name": "Skills", "fields": { "items": [ { "category": "Languages", "skills": "Python, TypeScript, SQL" }, { "category": "Frameworks", "skills": "React, Node.js" } ] } }
   ]
 }
 Rules:
-- One experience block per job, one education block per entry; keep every bullet point in the description.
-- Treat "Projects", "Co-curricular Activities", "Extracurriculars", "Volunteering", or "Leadership" sections as "experience" blocks.
-- Use only the four block types above. Skip sections that fit none of them.
+- One experience block per job, one project block per project, one cca block per activity/club, one education block per entry; keep every bullet point in the description.
+- Use "experience" for work experience/employment, "projects" for personal/academic/technical projects, and "cca" for co-curricular activities/extracurriculars/student clubs/volunteering/leadership.
+- For "skills", group skills into categorized items under fields.items: [{ "category": "Languages", "skills": "Python, TypeScript, SQL" }, { "category": "Frameworks", "skills": "React, Node.js" }]. If no category is given, set "category" to an empty string "".
+- Use only the six block types above. Skip sections that fit none of them.
 - Leave unknown fields as empty strings. Dates as they appear (e.g. "Jan 2021", "Present").
 
 Resume text:
@@ -80,10 +83,36 @@ router.post('/', requireAuth, async (req, res) => {
     const blocks = Array.isArray(parsed.blocks) ? parsed.blocks : [];
     res.json({
       personalInfo: parsed.personalInfo || {},
-      blocks: blocks.filter(
-        (b) =>
-          b && ['summary', 'experience', 'education', 'skills'].includes(b.type) && b.fields && typeof b.fields === 'object',
-      ),
+      blocks: blocks
+        .filter(
+          (b) =>
+            b &&
+            ['summary', 'experience', 'projects', 'cca', 'education', 'skills'].includes(b.type) &&
+            b.fields &&
+            typeof b.fields === 'object',
+        )
+        .map((b) => {
+          if (b.type === 'skills') {
+            let items = Array.isArray(b.fields.items) ? b.fields.items : [];
+            if (!items.length && (b.fields.skills || b.fields.category)) {
+              items = [{ category: b.fields.category || '', skills: b.fields.skills || '' }];
+            }
+            const flatSkills = items
+              .filter((i) => i.category || i.skills)
+              .map((i) => (i.category ? `${i.category}: ${i.skills}` : i.skills))
+              .join('\n');
+            return {
+              ...b,
+              fields: {
+                ...b.fields,
+                category: items[0]?.category || b.fields.category || '',
+                skills: flatSkills,
+                items,
+              },
+            };
+          }
+          return b;
+        }),
     });
   } catch (err) {
     console.error('Import resume error:', err);

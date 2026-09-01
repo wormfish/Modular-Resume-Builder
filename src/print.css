@@ -71,18 +71,18 @@
 
   /* ── Resume header: name + contact ── */
   [class*='resumeHeader'] {
-    margin-bottom: 14px !important;
+    margin-bottom: 12px !important;
   }
 
   [class*='resumeName'] {
-    font-size: 28px !important;
+    font-size: 22px !important;
     font-weight: 800 !important;
     color: #000 !important;
-    margin-bottom: 4px !important;
+    margin-bottom: 3px !important;
   }
 
   [class*='resumeContact'] {
-    font-size: 12px !important;
+    font-size: 11px !important;
     color: #555 !important;
     margin-bottom: 0 !important;
   }
@@ -99,17 +99,17 @@
     display: flex !important;
     align-items: center !important;
     margin-bottom: 6px !important;
-    border-bottom: 2px solid #222 !important;
+    border-bottom: 2px solid #000 !important;
     padding-bottom: 4px !important;
   }
 
   /* Section title is an <input> — force explicit print-safe styling */
   [class*='sectionTitle'] {
-    font-size: 12px !important;
+    font-size: 11.5px !important;
     font-weight: 700 !important;
     text-transform: uppercase !important;
     letter-spacing: 0.5px !important;
-    color: #333 !important;
+    color: #000 !important;
     background: transparent !important;
     border: none !important;
     padding: 0 !important;
@@ -147,32 +147,49 @@
   [class*='entryTitle'] {
     color: #000 !important;
     font-weight: 700 !important;
-    font-size: 14px !important;
+    font-size: 12px !important;
   }
 
   [class*='entryLocation'] {
     color: #000 !important;
     font-weight: 700 !important;
-    font-size: 14px !important;
+    font-size: 12px !important;
   }
 
   [class*='entrySubtitle'] {
     color: #444 !important;
-    font-size: 13px !important;
+    font-size: 11.5px !important;
   }
 
   [class*='entryDates'] {
     color: #444 !important;
-    font-size: 13px !important;
+    font-size: 11.5px !important;
   }
 
   [class*='entryBody'] {
     color: #222 !important;
-    font-size: 13px !important;
+    font-size: 11.5px !important;
     line-height: 1.35 !important;
   }
 
   [class*='entryBody'] p {
     margin: 0 0 2px 0 !important;
+  }
+
+  /* ── Template overrides for Print ── */
+  [class*='template-classic'] {
+    font-family: Georgia, 'Times New Roman', serif !important;
+  }
+
+  [class*='template-classic'] [class*='resumeName'] {
+    text-align: center !important;
+  }
+
+  [class*='template-classic'] [class*='resumeContact'] {
+    text-align: center !important;
+  }
+
+  [class*='template-classic'] [class*='sectionTitle'] {
+    font-family: Georgia, 'Times New Roman', serif !important;
   }
 }

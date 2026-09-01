@@ -57,10 +57,12 @@ export default function ResumeBlock({ blockId, blockType, sectionId, index, rend
           &times;
         </button>
       </div>
-      <div className={styles.entryHeader}>
-        <div className={styles.entryTitle}>{rendered.title}</div>
-        {rendered.location && <div className={styles.entryLocation}>{rendered.location}</div>}
-      </div>
+      {(rendered.title || rendered.location) && (
+        <div className={styles.entryHeader}>
+          {rendered.title && <div className={styles.entryTitle}>{rendered.title}</div>}
+          {rendered.location && <div className={styles.entryLocation}>{rendered.location}</div>}
+        </div>
+      )}
       {(rendered.subtitle || rendered.dates) && (
         <div className={styles.entrySubHeader}>
           {rendered.subtitle && <div className={styles.entrySubtitle}>{rendered.subtitle}</div>}

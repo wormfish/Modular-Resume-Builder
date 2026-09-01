@@ -265,10 +265,12 @@ export default function BlockLibrary({ blocks, jobTypes, onNewBlock, onEditBlock
                   <div className={styles.variantPicked}>&#8627; variant of {block.name || `${schema.label} block`}</div>
                 )}
 
-                <div className={styles.meta}>
-                  {rendered.title}
-                  {rendered.subtitle ? ` · ${rendered.subtitle}` : ''}
-                </div>
+                {(rendered.title || rendered.subtitle) && (
+                  <div className={styles.meta}>
+                    {rendered.title}
+                    {rendered.subtitle ? (rendered.title ? ` · ${rendered.subtitle}` : rendered.subtitle) : ''}
+                  </div>
+                )}
                 <div className={styles.preview}>{rendered.body || 'No additional details.'}</div>
                 <div className={styles.tags}>
                   {blockJobTypeIds.map((jtId) => (

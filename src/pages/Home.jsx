@@ -28,6 +28,14 @@ export default function Home() {
             Experience
           </li>
           <li>
+            <span className={styles.swatch} data-block-type="projects" />
+            Projects
+          </li>
+          <li>
+            <span className={styles.swatch} data-block-type="cca" />
+            CCA
+          </li>
+          <li>
             <span className={styles.swatch} data-block-type="education" />
             Education
           </li>

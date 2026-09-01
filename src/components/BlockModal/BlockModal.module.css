@@ -177,3 +177,138 @@
   line-height: 1.5;
   letter-spacing: 0.02em;
 }
+
+/* ── Skills Cell Builder ────────────────────────────────────── */
+
+.skillsBuilder {
+  margin-bottom: 14px;
+}
+
+.skillsBuilderHeader {
+  margin-bottom: 8px;
+}
+
+.skillsBuilderHeader label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink);
+}
+
+.skillsList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.skillRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 6px 10px;
+  transition: border-color 0.12s, box-shadow 0.12s, opacity 0.12s;
+}
+
+.skillRow:hover {
+  border-color: var(--ink);
+}
+
+.skillRowDragging {
+  opacity: 0.4;
+  border-style: dashed;
+  border-color: var(--primary);
+}
+
+.dragHandle {
+  cursor: grab;
+  user-select: none;
+  font-size: 14px;
+  color: var(--muted);
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.dragHandle:hover {
+  color: var(--ink);
+}
+
+.dragHandle:active {
+  cursor: grabbing;
+}
+
+.catInput {
+  flex: 0 0 160px;
+  font-weight: 600;
+}
+
+@media (max-width: 600px) {
+  .catInput {
+    flex: 0 0 120px;
+  }
+}
+
+.colonLabel {
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--muted);
+  user-select: none;
+}
+
+.skillInput {
+  flex: 1;
+}
+
+.removeSkillBtn {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  font-size: 16px;
+  padding: 2px 6px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--muted);
+  border-radius: var(--radius);
+}
+
+.removeSkillBtn:hover:not(:disabled) {
+  background: var(--danger-light);
+  color: var(--danger);
+  transform: none;
+  box-shadow: none;
+}
+
+.removeSkillBtn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.addSkillBtn {
+  background: var(--panel-2);
+  color: var(--ink);
+  border: 1.5px solid var(--ink);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 6px 12px;
+  cursor: pointer;
+  border-radius: var(--radius);
+  box-shadow: 2px 2px 0 var(--ink);
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+
+.addSkillBtn:hover {
+  background: var(--yellow);
+  box-shadow: 3px 3px 0 var(--ink);
+}
+
+.addSkillBtn:active {
+  box-shadow: 0 0 0 var(--ink);
+}

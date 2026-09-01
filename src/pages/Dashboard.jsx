@@ -511,6 +511,8 @@ export default function Dashboard() {
       const SECTION_TITLE = {
         summary: 'Summary',
         experience: 'Experience',
+        projects: 'Projects',
+        cca: 'CCA',
         education: 'Education',
         skills: 'Skills',
       };
@@ -615,7 +617,7 @@ export default function Dashboard() {
   // Helper to get display text from a block (handles both flat and nested content)
   const getBlockDisplayText = (block) => {
     const content = block.content || block;
-    return content.headline || content.role || content.institution || content.category || 'Untitled';
+    return content.headline || content.role || content.company || content.institution || content.category || content.skills || 'Untitled';
   };
 
   // Helper to resolve job type IDs to names

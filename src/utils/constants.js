@@ -4,6 +4,8 @@ export const DEFAULT_OWNER = 'kit@catship.nya';
 export const SECTION_TYPES = [
   { key: 'summary', label: 'Summary' },
   { key: 'experience', label: 'Experience' },
+  { key: 'projects', label: 'Projects' },
+  { key: 'cca', label: 'CCA' },
   { key: 'education', label: 'Education' },
   { key: 'skills', label: 'Skills' },
 ];
@@ -38,6 +40,42 @@ export const BLOCK_SCHEMA = {
       body: b.description || '',
     }),
   },
+  projects: {
+    label: 'Projects',
+    fields: [
+      { name: 'role', label: 'Role / Title', type: 'text' },
+      { name: 'company', label: 'Project / Organization', type: 'text' },
+      { name: 'location', label: 'Location / Link', type: 'text' },
+      { name: 'startDate', label: 'Start Date', type: 'text' },
+      { name: 'endDate', label: 'End Date', type: 'text' },
+      { name: 'description', label: 'Description', type: 'textarea' },
+    ],
+    render: (b) => ({
+      title: b.role || 'Project Name',
+      subtitle: b.company || '',
+      location: b.location || '',
+      dates: `${b.startDate || ''}${b.startDate && b.endDate ? ' – ' : ''}${b.endDate || ''}`,
+      body: b.description || '',
+    }),
+  },
+  cca: {
+    label: 'CCA',
+    fields: [
+      { name: 'role', label: 'Role / Position', type: 'text' },
+      { name: 'company', label: 'Club / Organization', type: 'text' },
+      { name: 'location', label: 'Location', type: 'text' },
+      { name: 'startDate', label: 'Start Date', type: 'text' },
+      { name: 'endDate', label: 'End Date', type: 'text' },
+      { name: 'description', label: 'Description', type: 'textarea' },
+    ],
+    render: (b) => ({
+      title: b.role || 'Position',
+      subtitle: b.company || '',
+      location: b.location || '',
+      dates: `${b.startDate || ''}${b.startDate && b.endDate ? ' – ' : ''}${b.endDate || ''}`,
+      body: b.description || '',
+    }),
+  },
   education: {
     label: 'Education',
     fields: [
@@ -61,12 +99,43 @@ export const BLOCK_SCHEMA = {
     label: 'Skills',
     fields: [
       { name: 'category', label: 'Category', type: 'text' },
-      { name: 'skills', label: 'Skills (comma separated)', type: 'textarea' },
+      { name: 'skills', label: 'Skills', type: 'textarea' },
     ],
-    render: (b) => ({
-      title: b.category || 'Skills',
-      body: b.skills || '',
-    }),
+    render: (b) => {
+      let items = Array.isArray(b.items) ? b.items : [];
+      if (!items.length && (b.skills || b.category)) {
+        const rawSkills = String(b.skills || '');
+        const lines = rawSkills.split('\n').map((l) => l.trim()).filter(Boolean);
+        if (lines.length > 1 && lines.some((l) => l.includes(':'))) {
+          items = lines.map((l) => {
+            const colonIdx = l.indexOf(':');
+            if (colonIdx !== -1) {
+              const cat = l.slice(0, colonIdx).replace(/^[•\-\*]\s*/, '').trim();
+              const val = l.slice(colonIdx + 1).trim();
+              return { category: cat, skills: val };
+            }
+            return { category: '', skills: l.replace(/^[•\-\*]\s*/, '').trim() };
+          });
+        } else {
+          items = [{ category: b.category || '', skills: b.skills || '' }];
+        }
+      }
+
+      const formattedLines = items
+        .filter((item) => (item.category && item.category.trim()) || (item.skills && item.skills.trim()))
+        .map((item) => {
+          const cat = item.category?.trim();
+          const val = item.skills?.trim() || '';
+          if (cat && val) return `• **${cat}:** ${val}`;
+          if (cat) return `• **${cat}**`;
+          return `• ${val}`;
+        });
+
+      return {
+        title: '',
+        body: formattedLines.join('\n'),
+      };
+    },
   },
 };
 
@@ -135,8 +204,35 @@ export const INITIAL_BLOCKS = [
     owner: DEFAULT_OWNER,
     type: 'skills',
     jobTypeIds: ['jt3', 'jt1'],
-    category: 'Technical Skills',
-    skills: 'JavaScript, TypeScript, React, Node.js, Python, SQL, AWS, Docker',
+    name: 'Technical Skills',
+    items: [
+      { category: 'Languages', skills: 'JavaScript, TypeScript, React, Node.js, Python, SQL' },
+      { category: 'Cloud & DevOps', skills: 'AWS, Docker, CI/CD, Git' },
+    ],
+  },
+  {
+    id: 'b6',
+    owner: DEFAULT_OWNER,
+    type: 'projects',
+    jobTypeIds: ['jt1', 'jt3'],
+    role: 'Creator & Maintainer',
+    company: 'Open-Source Markdown Engine',
+    location: 'github.com/example/engine',
+    startDate: '2022',
+    endDate: 'Present',
+    description: 'Built a high-performance streaming markdown parser in TypeScript with 2,000+ GitHub stars.',
+  },
+  {
+    id: 'b7',
+    owner: DEFAULT_OWNER,
+    type: 'cca',
+    jobTypeIds: ['jt2'],
+    role: 'President',
+    company: 'University Computing Society',
+    location: 'Campus Chapter',
+    startDate: '2014',
+    endDate: '2016',
+    description: 'Organized annual 48-hour national hackathon with 400+ participants and raised $25k in industry sponsorships.',
   },
 ];
 
@@ -182,9 +278,10 @@ export const BLANK_BLOCKS = [];
 export const SECTION_NAME_SUGGESTIONS = [
   'Summary',
   'Experience',
+  'Projects',
+  'CCA',
   'Education',
   'Skills',
-  'Projects',
   'Certifications',
   'Awards',
 ];

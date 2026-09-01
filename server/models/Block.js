@@ -4,7 +4,7 @@ const blockSchema = new mongoose.Schema(
   {
     _id: { type: String, required: true },
     owner: { type: String, required: true, index: true },
-    type: { type: String, required: true, enum: ['summary', 'experience', 'education', 'skills'] },
+    type: { type: String, required: true, enum: ['summary', 'experience', 'projects', 'cca', 'education', 'skills'] },
     // References to user's jobTypes dictionary by ID
     jobTypeIds: { type: [String], default: [] },
     // User-facing label so blocks are recognizable at a glance. Empty falls

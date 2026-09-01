@@ -67,11 +67,19 @@ export default function ResumeCanvas({
     return text
       .split('\n')
       .filter((line) => line.trim())
-      .map((line, i) => (
-        <p key={i} style={{ margin: '0 0 2px 0' }}>
-          {line}
-        </p>
-      ));
+      .map((line, i) => {
+        const parts = line.split(/(\*\*.*?\*\*)/g);
+        return (
+          <p key={i} style={{ margin: '0 0 2px 0' }}>
+            {parts.map((part, pIdx) => {
+              if (part.startsWith('**') && part.endsWith('**')) {
+                return <strong key={pIdx}>{part.slice(2, -2)}</strong>;
+              }
+              return part;
+            })}
+          </p>
+        );
+      });
   };
 
   return (
@@ -95,7 +103,7 @@ export default function ResumeCanvas({
             <div className={styles.resumeContact}>
               {[personalInfo.email, personalInfo.phone, personalInfo.location]
                 .filter((v) => v && v.trim())
-                .join(' · ')}
+                .join(' | ')}
             </div>
           </div>
 

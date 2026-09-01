@@ -130,6 +130,14 @@
   background: var(--pink);
 }
 
+.swatch[data-block-type='projects'] {
+  background: var(--purple);
+}
+
+.swatch[data-block-type='cca'] {
+  background: var(--teal);
+}
+
 .swatch[data-block-type='education'] {
   background: var(--yellow);
 }

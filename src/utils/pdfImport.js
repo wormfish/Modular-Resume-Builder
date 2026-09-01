@@ -15,8 +15,8 @@ const SECTION_PATTERNS = [
   { type: 'summary', re: /^(professional\s+)?(summary|profile|objective|about(\s+me)?|personal\s+statement)$/i },
   { type: 'experience', re: /^((work|professional|employment|relevant)\s+)?(experience|history)$/i },
   { type: 'experience', re: /^employment$/i },
-  { type: 'experience', re: /^(projects|personal\s+projects|academic\s+projects|key\s+projects|technical\s+projects)$/i },
-  { type: 'experience', re: /^(co-curricular\s+activities|extracurricular\s+activities|co-curriculars|extracurriculars|activities|volunteering|volunteer\s+experience|leadership(\s+experience)?)$/i },
+  { type: 'projects', re: /^(projects|personal\s+projects|academic\s+projects|key\s+projects|technical\s+projects)$/i },
+  { type: 'cca', re: /^(co-curricular\s+activities|extracurricular\s+activities|co-curriculars|extracurriculars|activities|volunteering|volunteer\s+experience|leadership(\s+experience)?|cca)$/i },
   { type: 'education', re: /^(education(al)?(\s+history)?|academics?)$/i },
   { type: 'skills', re: /^((technical|core|key|relevant)\s+)?(skills|competenc(y|ies)|technologies|tools)(\s+&\s+interests)?$/i },
 ];
@@ -151,7 +151,7 @@ function splitDates(text) {
   return { startDate: '', endDate: '', rest: text.trim() };
 }
 
-function parseExperienceEntry(entryLines, sectionX0) {
+function parseExperienceEntry(entryLines, sectionX0, type = 'experience') {
   const bullets = [];
   const headerLines = [];
   for (const line of entryLines) {
@@ -280,9 +280,10 @@ function parseExperienceEntry(entryLines, sectionX0) {
     description = description ? `${description}\n${paragraph}` : paragraph;
   }
 
+  const defaultLabel = type === 'projects' ? 'Project' : type === 'cca' ? 'CCA' : 'Experience';
   return {
-    type: 'experience',
-    name: [role, company].filter(Boolean).join(' — ') || 'Experience',
+    type,
+    name: [role, company].filter(Boolean).join(' — ') || defaultLabel,
     fields: {
       role,
       company,
@@ -470,47 +471,76 @@ export function parseResumeLines(lines) {
     }
 
     if (seg.type === 'skills') {
-      // The app's own export nests a category title ("Frontend") above each
-      // comma list — emit one block per category so the split survives.
+      const items = [];
       const headingLines = seg.lines.filter((l) => subheadingLike(l));
+
       if (headingLines.length) {
-        let cat = null;
-        let items = [];
+        // Subheading style (e.g. "Frontend" subheading line above skill items)
+        let currentCat = '';
+        let currentSkills = [];
+
         const flush = () => {
-          if (cat && items.length) {
-            blocks.push({
-              type: 'skills',
-              name: cat,
-              fields: { category: cat, skills: items.join(', ') },
+          if (currentCat || currentSkills.length) {
+            items.push({
+              category: currentCat,
+              skills: currentSkills.join(', '),
             });
           }
-          cat = null;
-          items = [];
+          currentCat = '';
+          currentSkills = [];
         };
+
         for (const l of seg.lines) {
           if (subheadingLike(l)) {
             flush();
-            cat = l.text;
+            currentCat = l.text.trim();
           } else {
-            const t = l.text.replace(BULLET_RE, '').trim();
-            if (!t) continue;
-            items.push(...(t.includes(',') ? t.split(',').map((s) => s.trim()).filter(Boolean) : [t]));
+            const raw = l.text.replace(BULLET_RE, '').trim();
+            if (!raw) continue;
+            const parts = raw.includes(',') ? raw.split(',').map((s) => s.trim()).filter(Boolean) : [raw];
+            currentSkills.push(...parts);
           }
         }
         flush();
       } else {
-        const items = [];
+        // Line-by-line inspection (e.g. "Languages: Python, JS" or bullet items)
         for (const l of seg.lines) {
-          const t = l.text.replace(BULLET_RE, '').trim();
-          if (!t) continue;
-          items.push(...(t.includes(',') ? t.split(',').map((s) => s.trim()).filter(Boolean) : [t]));
+          const raw = l.text.replace(BULLET_RE, '').trim();
+          if (!raw) continue;
+
+          const colonIdx = raw.indexOf(':');
+          if (colonIdx > 0 && colonIdx <= 45) {
+            const cat = raw.slice(0, colonIdx).trim();
+            const val = raw.slice(colonIdx + 1).trim();
+            if (cat && val) {
+              items.push({ category: cat, skills: val });
+              continue;
+            }
+          }
+
+          // If no colon, add as uncategorized skill item
+          items.push({ category: '', skills: raw });
         }
-        blocks.push({
-          type: 'skills',
-          name: seg.title,
-          fields: { category: seg.title, skills: items.join(', ') },
-        });
       }
+
+      if (!items.length) {
+        items.push({ category: '', skills: '' });
+      }
+
+      const flatSkills = items
+        .filter((i) => i.category || i.skills)
+        .map((i) => (i.category ? `${i.category}: ${i.skills}` : i.skills))
+        .join('\n');
+
+      blocks.push({
+        type: 'skills',
+        name: seg.title || 'Technical Skills',
+        fields: {
+          category: items[0]?.category || seg.title || 'Skills',
+          skills: flatSkills,
+          items,
+        },
+      });
       return;
     }
 
@@ -540,9 +570,11 @@ export function parseResumeLines(lines) {
         }
       }
     }
-    const parser = seg.type === 'experience' ? parseExperienceEntry : parseEducationEntry;
+    const isExpLike = seg.type === 'experience' || seg.type === 'projects' || seg.type === 'cca';
     for (const entryLines of entries) {
-      const block = parser(entryLines, sectionX0);
+      const block = isExpLike
+        ? parseExperienceEntry(entryLines, sectionX0, seg.type)
+        : parseEducationEntry(entryLines, sectionX0);
       if (block) blocks.push(block);
     }
   });
