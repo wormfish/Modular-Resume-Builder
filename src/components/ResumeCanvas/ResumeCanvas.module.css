@@ -114,16 +114,16 @@
 }
 
 .contactLink {
-  color: inherit;
+  color: var(--primary, #274bff);
   text-decoration: underline;
-  text-decoration-color: rgba(29, 39, 51, 0.35);
+  text-decoration-color: rgba(39, 75, 255, 0.4);
   text-underline-offset: 2.5px;
   transition: color 0.12s ease, text-decoration-color 0.12s ease;
 }
 
 .contactLink:hover {
-  color: var(--primary);
-  text-decoration-color: var(--primary);
+  color: var(--primary-deep, #1a34c4);
+  text-decoration-color: var(--primary-deep, #1a34c4);
 }
 
 .resumeSection {

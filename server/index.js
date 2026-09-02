@@ -13,6 +13,7 @@ import extractKeywordsRouter from './routes/extractKeywords.js';
 import autofillResumeRouter from './routes/autofillResume.js';
 import resumeChatRouter from './routes/resumeChat.js';
 import importResumeRouter from './routes/importResume.js';
+import autoparseBlockRouter from './routes/autoparseBlock.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: join(__dirname, '.env') });
@@ -46,6 +47,7 @@ app.use('/api/extract-keywords', extractKeywordsRouter);
 app.use('/api/autofill-resume', autofillResumeRouter);
 app.use('/api/resume-chat', resumeChatRouter);
 app.use('/api/import-resume', importResumeRouter);
+app.use('/api/autoparse-block', autoparseBlockRouter);
 
 app.get('/api/health', (_req, res) => {
   res.json({

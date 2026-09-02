@@ -15,8 +15,63 @@ export default function BlockModal({
 }) {
   const [newJobTypeName, setNewJobTypeName] = useState('');
   const [draggedSkillIdx, setDraggedSkillIdx] = useState(null);
+  const [autoParseOpen, setAutoParseOpen] = useState(false);
+  const [autoParseText, setAutoParseText] = useState('');
+  const [isAutoParsing, setIsAutoParsing] = useState(false);
+  const [autoParseError, setAutoParseError] = useState('');
   const schema = BLOCK_SCHEMA[tempBlock.type];
   const jobTypeIds = tempBlock.jobTypeIds || [];
+
+  const handleAutoParseSubmit = async () => {
+    if (!autoParseText.trim()) {
+      setAutoParseError('Please type or paste some notes to parse.');
+      return;
+    }
+    setIsAutoParsing(true);
+    setAutoParseError('');
+    try {
+      const token = localStorage.getItem('auth-token');
+      const res = await fetch('/api/autoparse-block', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          text: autoParseText.trim(),
+          targetType: tempBlock.type,
+          currentBlock: tempBlock,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Auto-parsing failed.');
+      }
+
+      const parsed = await res.json();
+      if (parsed && typeof parsed === 'object') {
+        setTempBlock((prev) => {
+          const next = { ...prev };
+          if (parsed.type) next.type = parsed.type;
+          if (parsed.name) next.name = parsed.name;
+          if (parsed.fields && typeof parsed.fields === 'object') {
+            Object.assign(next, parsed.fields);
+            if (parsed.type === 'skills' && Array.isArray(parsed.fields.items)) {
+              next.items = parsed.fields.items;
+            }
+          }
+          return next;
+        });
+        setAutoParseOpen(false);
+        setAutoParseText('');
+      }
+    } catch (err) {
+      setAutoParseError(err.message || 'Failed to auto-parse block.');
+    } finally {
+      setIsAutoParsing(false);
+    }
+  };
 
   // Parse legacy skills into items array if needed
   const getSkillItems = () => {
@@ -319,6 +374,17 @@ export default function BlockModal({
         </div>
 
         <div className={styles.modalFooter}>
+          <button
+            type="button"
+            className={styles.autoParseBtn}
+            onClick={() => {
+              setAutoParseError('');
+              setAutoParseOpen(true);
+            }}
+            title="Open AI auto-parse window to structure raw experience into STAR bullet points"
+          >
+            ✨ Auto-Parse
+          </button>
           <button onClick={onClose}>Cancel</button>
           {canSaveAsChildVariant && (
             <button
@@ -342,6 +408,87 @@ export default function BlockModal({
             {isResumeVariant ? 'Save Variant' : 'Save Block'}
           </button>
         </div>
+
+        {autoParseOpen && (
+          <div className={styles.autoParseOverlay} onClick={() => setAutoParseOpen(false)}>
+            <div className={styles.autoParseModal} onClick={(e) => e.stopPropagation()}>
+              <div className={styles.autoParseHeader}>
+                <div className={styles.autoParseTitleGroup}>
+                  <span className={styles.sparkleIcon}>✨</span>
+                  <div>
+                    <h4>Auto-Parse Experience</h4>
+                    <span className={styles.autoParseSubtitle}>
+                      Powered by AI & STAR sentence structure (Situation, Task, Action, Result)
+                    </span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className={styles.closeBtn}
+                  onClick={() => setAutoParseOpen(false)}
+                >
+                  &times;
+                </button>
+              </div>
+
+              <div className={styles.autoParseBody}>
+                <div className={styles.starGuideBox}>
+                  <div className={styles.starPills}>
+                    <span className={styles.starPill}><strong>S</strong>ituation</span>
+                    <span className={styles.starPill}><strong>T</strong>ask</span>
+                    <span className={styles.starPill}><strong>A</strong>ction</span>
+                    <span className={styles.starPill}><strong>R</strong>esult</span>
+                  </div>
+                  <p className={styles.starGuideText}>
+                    Type or paste what you went through (your role, company, the situation/challenge you faced, actions you took, and measurable results). The AI will structure it into impactful, concise STAR-method bullet points with quantified results.
+                  </p>
+                </div>
+
+                <div className={styles.autoParseField}>
+                  <label>What did you work on / go through?</label>
+                  <textarea
+                    className={styles.autoParseTextarea}
+                    rows={6}
+                    placeholder="e.g. I was a Senior Software Engineer at TechCorp from Jan 2021 to Present in San Francisco. Our API had latency spikes causing 15% drop-offs during black friday. I redesigned the cache with Redis and optimized SQL queries, reducing latency by 45% and saving $80k in cloud infrastructure. Also mentored 4 junior devs."
+                    value={autoParseText}
+                    onChange={(e) => setAutoParseText(e.target.value)}
+                    disabled={isAutoParsing}
+                    autoFocus
+                  />
+                </div>
+
+                {autoParseError && (
+                  <div className={styles.autoParseError}>{autoParseError}</div>
+                )}
+              </div>
+
+              <div className={styles.autoParseFooter}>
+                <button
+                  type="button"
+                  onClick={() => setAutoParseOpen(false)}
+                  disabled={isAutoParsing}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className={styles.autoParseSubmitBtn}
+                  onClick={handleAutoParseSubmit}
+                  disabled={isAutoParsing || !autoParseText.trim()}
+                >
+                  {isAutoParsing ? (
+                    <>
+                      <span className={styles.spinner} />
+                      Parsing with AI...
+                    </>
+                  ) : (
+                    '⚡ Generate & Map to Block'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -38,7 +38,15 @@ function VariantsModal({ parent, variants, getDisplayText, onClose, onEdit, onDu
               <li key={v._id || v.id} className={styles.variantItem}>
                 <div className={styles.variantInfo}>
                   <strong>{v.name || `${BLOCK_SCHEMA[v.type]?.label || ''} variant`}</strong>
-                  <span>{getDisplayText(v)}</span>
+                  {(() => {
+                    const dt = getDisplayText(v);
+                    return (
+                      <>
+                        {dt.meta && <span className={styles.variantMeta}>{dt.meta}</span>}
+                        {dt.body && <span className={styles.variantPreview}>{dt.body}</span>}
+                      </>
+                    );
+                  })()}
                 </div>
                 <div className={styles.cardActions}>
                   <button
@@ -615,8 +623,17 @@ export default function Dashboard() {
 
   // Helper to get display text from a block (handles both flat and nested content)
   const getBlockDisplayText = (block) => {
+    const schema = BLOCK_SCHEMA[block.type];
+    if (schema?.render) {
+      const rendered = schema.render(block);
+      const meta = [rendered.title, rendered.subtitle, rendered.dates].filter(Boolean).join(' · ');
+      return { meta, body: rendered.body || '' };
+    }
     const content = block.content || block;
-    return content.headline || content.role || content.company || content.institution || content.category || content.skills || 'Untitled';
+    return {
+      meta: content.headline || content.role || content.company || content.institution || content.category || 'Untitled',
+      body: content.body || content.description || content.skills || '',
+    };
   };
 
   // Helper to resolve job type IDs to names
@@ -626,15 +643,27 @@ export default function Dashboard() {
 
   // Section type filter for library blocks ('all' | 'summary' | 'experience' | 'projects' | 'activities' | 'education' | 'skills')
   const [selectedBlockType, setSelectedBlockType] = useState('all');
+  const [blockSearchQuery, setBlockSearchQuery] = useState('');
 
   // Resume-scoped variants live only on their resume, and child variants
   // live under their parent's Variants popup — neither shows as a card.
   const libraryBlocks = blocks.filter((b) => !b.resumeId && !b.variantOf);
 
   const filteredLibraryBlocks = libraryBlocks.filter((b) => {
-    if (selectedBlockType === 'all') return true;
-    if (selectedBlockType === 'activities') return b.type === 'activities' || b.type === 'cca';
-    return b.type === selectedBlockType;
+    const matchesType =
+      selectedBlockType === 'all' ||
+      b.type === selectedBlockType ||
+      (selectedBlockType === 'activities' && b.type === 'cca');
+
+    if (!matchesType) return false;
+
+    if (!blockSearchQuery.trim()) return true;
+
+    const query = blockSearchQuery.toLowerCase().trim();
+    const blockContentStr = JSON.stringify(b).toLowerCase();
+    const jobNames = resolveJobTypeNames(b.jobTypeIds || b.jobTypes).join(' ').toLowerCase();
+
+    return blockContentStr.includes(query) || jobNames.includes(query);
   });
 
   // Child variants grouped by parent id, for the Variants popup.
@@ -740,39 +769,58 @@ export default function Dashboard() {
 
         <section className={styles.section}>
           <div className={styles.sectionHeader}>
-            <h2 className={styles.sectionTitle}>
-              My Blocks ({libraryBlocks.length})
-            </h2>
-            <button className={styles.createBtn} onClick={openNewBlockModal}>
-              + New Block
-            </button>
+            <div className={styles.sectionHeaderLeft}>
+              <h2 className={styles.sectionTitle}>
+                My Blocks ({libraryBlocks.length})
+              </h2>
+              <select
+                className={styles.sectionSelect}
+                value={selectedBlockType}
+                onChange={(e) => setSelectedBlockType(e.target.value)}
+                aria-label="Filter blocks by section"
+              >
+                <option value="all">All Sections ({libraryBlocks.length})</option>
+                {SECTION_TYPES.map((st) => {
+                  const count = libraryBlocks.filter(
+                    (b) => b.type === st.key || (st.key === 'activities' && b.type === 'cca'),
+                  ).length;
+                  return (
+                    <option key={st.key} value={st.key}>
+                      {st.label} ({count})
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+            <div className={styles.sectionActions}>
+              <button className={styles.createBtn} onClick={openNewBlockModal}>
+                + New Block
+              </button>
+            </div>
           </div>
 
-          <div className={styles.filterRow}>
-            <button
-              type="button"
-              className={`${styles.filterBtn} ${selectedBlockType === 'all' ? styles.filterBtnActive : ''}`}
-              onClick={() => setSelectedBlockType('all')}
-            >
-              All ({libraryBlocks.length})
-            </button>
-            {SECTION_TYPES.map((st) => {
-              const count = libraryBlocks.filter(
-                (b) => b.type === st.key || (st.key === 'activities' && b.type === 'cca'),
-              ).length;
-              return (
+          <div className={styles.blockToolbar}>
+            <div className={styles.searchBox}>
+              <span className={styles.searchIcon}>🔍</span>
+              <input
+                type="text"
+                className={styles.searchInput}
+                placeholder="Search blocks by name, role, company, skills, or tags..."
+                value={blockSearchQuery}
+                onChange={(e) => setBlockSearchQuery(e.target.value)}
+              />
+              {blockSearchQuery && (
                 <button
-                  key={st.key}
                   type="button"
-                  data-block-type={st.key}
-                  className={`${styles.filterBtn} ${selectedBlockType === st.key ? styles.filterBtnActive : ''}`}
-                  onClick={() => setSelectedBlockType(st.key)}
+                  className={styles.clearSearchBtn}
+                  onClick={() => setBlockSearchQuery('')}
+                  title="Clear search"
+                  aria-label="Clear search"
                 >
-                  <span className={styles.filterDot} data-block-type={st.key} />
-                  {st.label} ({count})
+                  ✕
                 </button>
-              );
-            })}
+              )}
+            </div>
           </div>
 
           {loading ? (
@@ -786,14 +834,29 @@ export default function Dashboard() {
           ) : filteredLibraryBlocks.length === 0 ? (
             <div className={styles.emptyState}>
               <p className={styles.emptyText}>
-                No {SECTION_TYPES.find((s) => s.key === selectedBlockType)?.label || selectedBlockType} blocks found.
+                {blockSearchQuery.trim()
+                  ? `No blocks found matching “${blockSearchQuery}”.`
+                  : `No ${SECTION_TYPES.find((s) => s.key === selectedBlockType)?.label || selectedBlockType} blocks found.`}
               </p>
+              {(blockSearchQuery.trim() || selectedBlockType !== 'all') && (
+                <button
+                  type="button"
+                  className={styles.clearFiltersBtn}
+                  onClick={() => {
+                    setBlockSearchQuery('');
+                    setSelectedBlockType('all');
+                  }}
+                >
+                  Clear Search & Filters
+                </button>
+              )}
             </div>
           ) : (
             <div className={styles.cardGrid}>
               {filteredLibraryBlocks.map((block) => {
                 const variants = childrenOf(block);
                 const blockTypeKey = block.type === 'cca' ? 'activities' : block.type;
+                const dt = getBlockDisplayText(block);
                 return (
                   <div
                     key={block._id || block.id}
@@ -804,11 +867,25 @@ export default function Dashboard() {
                       <span className={styles.typeChip} data-block-type={blockTypeKey}>
                         {BLOCK_SCHEMA[block.type]?.label || block.type}
                       </span>
-                      <h3 className={styles.cardTitle}>
+                      <h3
+                        className={styles.cardTitle}
+                        title={block.name || `${BLOCK_SCHEMA[block.type]?.label || ''} block`}
+                      >
                         {block.name || `${BLOCK_SCHEMA[block.type]?.label || ''} block`}
                       </h3>
                     </div>
-                    <p className={styles.cardMeta}>{getBlockDisplayText(block)}</p>
+                    <div className={styles.cardContent}>
+                      {dt.meta && (
+                        <p className={styles.cardMeta} title={dt.meta}>
+                          {dt.meta}
+                        </p>
+                      )}
+                      {dt.body && (
+                        <p className={styles.cardPreview} title={dt.body}>
+                          {dt.body}
+                        </p>
+                      )}
+                    </div>
                     <p className={styles.cardTags}>
                       {resolveJobTypeNames(block.jobTypeIds || block.jobTypes).map((name) => (
                         <span key={name} className={styles.tag}>{name}</span>

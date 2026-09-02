@@ -135,157 +135,167 @@ export default function PropertiesPanel({
   return (
     <aside className={styles.panel} data-print-hide>
       <div className={styles.panelContent}>
-        <label className={styles.subLabel}>Template</label>
-        <div className={styles.templateToggleRow}>
-          {Object.entries(TEMPLATES).map(([id, t]) => {
-            const isSelected = (resume.templateId || 'classic') === id;
-            return (
-              <button
-                key={id}
-                type="button"
-                className={`${styles.templateToggleBtn} ${isSelected ? styles.templateToggleActive : ''}`}
-                onClick={() => onSetTemplate(id)}
+        <div className={styles.panelSection}>
+          <label className={styles.subLabel}>Template</label>
+          <div className={styles.templateToggleRow}>
+            {Object.entries(TEMPLATES).map(([id, t]) => {
+              const isSelected = (resume.templateId || 'classic') === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  className={`${styles.templateToggleBtn} ${isSelected ? styles.templateToggleActive : ''}`}
+                  onClick={() => onSetTemplate(id)}
+                >
+                  {id === 'classic' ? 'Classic' : id === 'modern' ? 'Modern' : t.name}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className={styles.sectionDivider} />
+
+        <div className={styles.panelSection}>
+          <label className={styles.subLabel}>Personal Info</label>
+
+          <div className={styles.field}>
+            <label className={styles.subLabel}>Full Name</label>
+            <input
+              className={styles.nameInput}
+              type="text"
+              placeholder="e.g. Jane Doe"
+              value={normInfo.name || ''}
+              onChange={(e) => handleNameChange(e.target.value)}
+            />
+          </div>
+
+          <div className={`${styles.fieldsList} ${draggedIdx !== null ? styles.dragActive : ''}`}>
+            <label className={styles.subLabel}>Contact & Details ({fields.length})</label>
+            {fields.map((f, idx) => (
+              <div
+                key={f.id || idx}
+                className={`${styles.fieldCard} ${draggedIdx === idx ? styles.dragging : ''} ${dragOverIdx === idx && draggedIdx !== idx ? styles.dragOver : ''}`}
+                draggable
+                onDragStart={(e) => handleDragStart(e, idx)}
+                onDragEnd={handleDragEnd}
+                onDragOver={(e) => handleDragOver(e, idx)}
+                onDragLeave={(e) => handleDragLeave(e, idx)}
+                onDrop={(e) => handleDrop(e, idx)}
               >
-                {id === 'classic' ? 'Classic' : id === 'modern' ? 'Modern' : t.name}
-              </button>
-            );
-          })}
-        </div>
-
-        <label className={styles.labelSpacer}>Personal Info</label>
-
-        <div className={styles.field}>
-          <label className={styles.subLabel}>Full Name</label>
-          <input
-            className={styles.nameInput}
-            type="text"
-            placeholder="e.g. Jane Doe"
-            value={normInfo.name || ''}
-            onChange={(e) => handleNameChange(e.target.value)}
-          />
-        </div>
-
-        <div className={`${styles.fieldsList} ${draggedIdx !== null ? styles.dragActive : ''}`}>
-          <label className={styles.subLabel}>Contact & Details ({fields.length})</label>
-          {fields.map((f, idx) => (
-            <div
-              key={f.id || idx}
-              className={`${styles.fieldCard} ${draggedIdx === idx ? styles.dragging : ''} ${dragOverIdx === idx && draggedIdx !== idx ? styles.dragOver : ''}`}
-              draggable
-              onDragStart={(e) => handleDragStart(e, idx)}
-              onDragEnd={handleDragEnd}
-              onDragOver={(e) => handleDragOver(e, idx)}
-              onDragLeave={(e) => handleDragLeave(e, idx)}
-              onDrop={(e) => handleDrop(e, idx)}
-            >
-              <div className={styles.fieldCardHeader}>
+                <div className={styles.fieldCardHeader}>
+                  <input
+                    className={styles.fieldLabelInput}
+                    type="text"
+                    value={f.label}
+                    placeholder="Label"
+                    draggable={false}
+                    onDragStart={(e) => e.stopPropagation()}
+                    onChange={(e) => handleFieldChange(idx, 'label', e.target.value)}
+                    title="Field label (e.g. Email, LinkedIn, Portfolio)"
+                  />
+                  <div className={styles.fieldActions}>
+                    <div
+                      className={styles.dragHandleBtn}
+                      title="Drag to reorder"
+                      aria-label="Drag to reorder"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                        <rect x="2" y="3" width="12" height="2" rx="0.5" />
+                        <rect x="2" y="7" width="12" height="2" rx="0.5" />
+                        <rect x="2" y="11" width="12" height="2" rx="0.5" />
+                      </svg>
+                    </div>
+                    <button
+                      type="button"
+                      className={`${styles.fieldActionBtn} ${styles.linkBtn} ${f.url ? styles.linkActive : ''}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenLinkModal(idx);
+                      }}
+                      draggable={false}
+                      onDragStart={(e) => e.stopPropagation()}
+                      title={f.url ? `Linked to: ${f.url} (click to edit)` : 'Attach link to text'}
+                      aria-label="Attach link"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M6.5 9.5a3.5 3.5 0 0 0 4.95 0l2.12-2.12a3.5 3.5 0 0 0-4.95-4.95l-1.06 1.06" />
+                        <path d="M9.5 6.5a3.5 3.5 0 0 0-4.95 0L2.43 8.62a3.5 3.5 0 0 0 4.95 4.95l1.06-1.06" />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      className={`${styles.fieldActionBtn} ${styles.deleteBtn}`}
+                      onClick={() => handleRemoveField(idx)}
+                      draggable={false}
+                      onDragStart={(e) => e.stopPropagation()}
+                      disabled={fields.length <= 3}
+                      title={
+                        fields.length <= 3
+                          ? 'Minimum 3 fields required'
+                          : 'Remove field'
+                      }
+                      aria-label="Remove field"
+                    >
+                      <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                        <line x1="3" y1="3" x2="13" y2="13" />
+                        <line x1="13" y1="3" x2="3" y2="13" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
                 <input
-                  className={styles.fieldLabelInput}
+                  className={styles.fieldValueInput}
                   type="text"
-                  value={f.label}
-                  placeholder="Label"
+                  placeholder={`Enter ${f.label.toLowerCase()}...`}
+                  value={f.value || ''}
                   draggable={false}
                   onDragStart={(e) => e.stopPropagation()}
-                  onChange={(e) => handleFieldChange(idx, 'label', e.target.value)}
-                  title="Field label (e.g. Email, LinkedIn, Portfolio)"
+                  onChange={(e) => handleFieldChange(idx, 'value', e.target.value)}
                 />
-                <div className={styles.fieldActions}>
-                  <div
-                    className={styles.dragHandleBtn}
-                    title="Drag to reorder"
-                    aria-label="Drag to reorder"
-                  >
-                    <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-                      <rect x="2" y="3" width="12" height="2" rx="0.5" />
-                      <rect x="2" y="7" width="12" height="2" rx="0.5" />
-                      <rect x="2" y="11" width="12" height="2" rx="0.5" />
-                    </svg>
-                  </div>
-                  <button
-                    type="button"
-                    className={`${styles.fieldActionBtn} ${styles.linkBtn} ${f.url ? styles.linkActive : ''}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleOpenLinkModal(idx);
-                    }}
-                    draggable={false}
-                    onDragStart={(e) => e.stopPropagation()}
-                    title={f.url ? `Linked to: ${f.url} (click to edit)` : 'Attach link to text'}
-                    aria-label="Attach link"
-                  >
-                    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M6.5 9.5a3.5 3.5 0 0 0 4.95 0l2.12-2.12a3.5 3.5 0 0 0-4.95-4.95l-1.06 1.06" />
-                      <path d="M9.5 6.5a3.5 3.5 0 0 0-4.95 0L2.43 8.62a3.5 3.5 0 0 0 4.95 4.95l1.06-1.06" />
-                    </svg>
-                  </button>
-                  <button
-                    type="button"
-                    className={`${styles.fieldActionBtn} ${styles.deleteBtn}`}
-                    onClick={() => handleRemoveField(idx)}
-                    draggable={false}
-                    onDragStart={(e) => e.stopPropagation()}
-                    disabled={fields.length <= 3}
-                    title={
-                      fields.length <= 3
-                        ? 'Minimum 3 fields required'
-                        : 'Remove field'
-                    }
-                    aria-label="Remove field"
-                  >
-                    <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
-                      <line x1="3" y1="3" x2="13" y2="13" />
-                      <line x1="13" y1="3" x2="3" y2="13" />
-                    </svg>
-                  </button>
-                </div>
               </div>
-              <input
-                className={styles.fieldValueInput}
-                type="text"
-                placeholder={`Enter ${f.label.toLowerCase()}...`}
-                value={f.value || ''}
-                draggable={false}
-                onDragStart={(e) => e.stopPropagation()}
-                onChange={(e) => handleFieldChange(idx, 'value', e.target.value)}
-              />
-            </div>
-          ))}
+            ))}
 
+            <button
+              type="button"
+              className={styles.addFieldBtn}
+              onClick={handleAddField}
+              title="Add another contact or info field"
+            >
+              + Add Field
+            </button>
+            {fields.length <= 3 && (
+              <p className={styles.minNote}>Minimum 3 contact fields required.</p>
+            )}
+          </div>
+
+          {/* Save this resume's personal info as the account default used to
+              prefill every new resume (also editable via Dashboard → email). */}
           <button
-            type="button"
-            className={styles.addFieldBtn}
-            onClick={handleAddField}
-            title="Add another contact or info field"
+            className={styles.saveDefaultBtn}
+            onClick={onSaveDefaultPersonalInfo}
+            disabled={saveDefaultStatus === 'saving'}
+            title="Use these details and field order to prefill new resumes"
           >
-            + Add Field
+            {saveDefaultStatus === 'saving'
+              ? 'Saving...'
+              : saveDefaultStatus === 'saved'
+                ? '✓ Saved as Default'
+                : saveDefaultStatus === 'error'
+                  ? 'Failed — try again'
+                  : 'Save as Default'}
           </button>
-          {fields.length <= 3 && (
-            <p className={styles.minNote}>Minimum 3 contact fields required.</p>
-          )}
         </div>
 
-        {/* Save this resume's personal info as the account default used to
-            prefill every new resume (also editable via Dashboard → email). */}
-        <button
-          className={styles.saveDefaultBtn}
-          onClick={onSaveDefaultPersonalInfo}
-          disabled={saveDefaultStatus === 'saving'}
-          title="Use these details and field order to prefill new resumes"
-        >
-          {saveDefaultStatus === 'saving'
-            ? 'Saving...'
-            : saveDefaultStatus === 'saved'
-              ? '✓ Saved as Default'
-              : saveDefaultStatus === 'error'
-                ? 'Failed — try again'
-                : 'Save as Default'}
-        </button>
+        <div className={styles.sectionDivider} />
 
-        <label className={styles.labelSpacer}>Tips</label>
-        <p className={styles.tipText}>
-          Drag blocks from the library into a section. Reorder blocks within a section by dragging
-          them. Click the pencil icon on a block to edit its content.
-        </p>
+        <div className={styles.panelSection}>
+          <label className={styles.subLabel}>Tips</label>
+          <p className={styles.tipText}>
+            Drag blocks from the library into a section. Reorder blocks within a section by dragging
+            them. Click the pencil icon on a block to edit its content.
+          </p>
+        </div>
       </div>
 
       {/* Link Window Modal */}
