@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { BLOCK_SCHEMA, TEMPLATES } from '../../utils/constants';
+import { normalizePersonalInfo, resolveContactUrl } from '../../utils/personalInfo';
 import { DRAG_KEYS, DRAG_SOURCE } from '../../utils/dragKeys';
 import ResumeBlock from './ResumeBlock';
 import styles from './ResumeCanvas.module.css';
@@ -23,9 +24,24 @@ export default function ResumeCanvas({
 }) {
   const [dragOverSection, setDragOverSection] = useState(null);
 
-  const template = TEMPLATES[resume.templateId] || TEMPLATES.modern;
+  const template = TEMPLATES[resume.templateId] || TEMPLATES.classic;
   const sectionOrder = resume.sectionOrder || [];
   const sections = resume.sections || {};
+
+  const normInfo = normalizePersonalInfo(personalInfo);
+  const contactItems = Array.isArray(normInfo.fields)
+    ? normInfo.fields
+        .filter((f) => (f.value || '').trim())
+        .map((f) => ({
+          id: f.id,
+          text: (f.value || '').trim(),
+          url: resolveContactUrl(f),
+        }))
+    : [
+        { id: 'c-email', text: (normInfo.email || '').trim(), url: normInfo.email ? `mailto:${normInfo.email.trim()}` : null },
+        { id: 'c-phone', text: (normInfo.phone || '').trim(), url: null },
+        { id: 'c-loc', text: (normInfo.location || '').trim(), url: null },
+      ].filter((item) => item.text);
 
   const handleDragOver = useCallback((e, sectionTitle) => {
     e.preventDefault();
@@ -99,11 +115,26 @@ export default function ResumeCanvas({
       <div className={styles.canvasScroll}>
         <div className={`${styles.resumePage} ${styles[template.className] || ''}`}>
           <div className={styles.resumeHeader}>
-            <div className={styles.resumeName}>{personalInfo.name}</div>
+            <div className={styles.resumeName}>{normInfo.name}</div>
             <div className={styles.resumeContact}>
-              {[personalInfo.email, personalInfo.phone, personalInfo.location]
-                .filter((v) => v && v.trim())
-                .join(' | ')}
+              {contactItems.map((item, idx) => (
+                <span key={item.id || idx}>
+                  {idx > 0 && <span> | </span>}
+                  {item.url ? (
+                    <a
+                      href={item.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={styles.contactLink}
+                      title={item.url}
+                    >
+                      {item.text}
+                    </a>
+                  ) : (
+                    <span>{item.text}</span>
+                  )}
+                </span>
+              ))}
             </div>
           </div>
 

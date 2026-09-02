@@ -5,7 +5,7 @@ export const SECTION_TYPES = [
   { key: 'summary', label: 'Summary' },
   { key: 'experience', label: 'Experience' },
   { key: 'projects', label: 'Projects' },
-  { key: 'cca', label: 'CCA' },
+  { key: 'activities', label: 'Activities' },
   { key: 'education', label: 'Education' },
   { key: 'skills', label: 'Skills' },
 ];
@@ -58,8 +58,26 @@ export const BLOCK_SCHEMA = {
       body: b.description || '',
     }),
   },
+  activities: {
+    label: 'Activities',
+    fields: [
+      { name: 'role', label: 'Role / Position', type: 'text' },
+      { name: 'company', label: 'Organization / Initiative', type: 'text' },
+      { name: 'location', label: 'Location', type: 'text' },
+      { name: 'startDate', label: 'Start Date', type: 'text' },
+      { name: 'endDate', label: 'End Date', type: 'text' },
+      { name: 'description', label: 'Description', type: 'textarea' },
+    ],
+    render: (b) => ({
+      title: b.role || 'Position',
+      subtitle: b.company || '',
+      location: b.location || '',
+      dates: `${b.startDate || ''}${b.startDate && b.endDate ? ' – ' : ''}${b.endDate || ''}`,
+      body: b.description || '',
+    }),
+  },
   cca: {
-    label: 'CCA',
+    label: 'Activities',
     fields: [
       { name: 'role', label: 'Role / Position', type: 'text' },
       { name: 'company', label: 'Club / Organization', type: 'text' },
@@ -140,15 +158,15 @@ export const BLOCK_SCHEMA = {
 };
 
 export const TEMPLATES = {
-  modern: {
-    name: 'Modern Clean',
-    description: 'A clean, single-column layout with a bold header.',
-    className: 'template-modern',
-  },
   classic: {
     name: 'Classic Professional',
     description: 'A traditional serif layout with a centered header.',
     className: 'template-classic',
+  },
+  modern: {
+    name: 'Modern Clean',
+    description: 'A clean, single-column layout with a bold header.',
+    className: 'template-modern',
   },
 };
 
@@ -225,7 +243,7 @@ export const INITIAL_BLOCKS = [
   {
     id: 'b7',
     owner: DEFAULT_OWNER,
-    type: 'cca',
+    type: 'activities',
     jobTypeIds: ['jt2'],
     role: 'President',
     company: 'University Computing Society',
@@ -242,12 +260,17 @@ export const INITIAL_RESUME = {
   id: 'r1',
   owner: DEFAULT_OWNER,
   title: 'My Resume',
-  templateId: 'modern',
+  templateId: 'classic',
   personalInfo: {
     name: 'Your Name',
     email: 'your.email@example.com',
     phone: '(123) 456-7890',
-    location: 'City, Country',
+    linkedin: 'linkedin.com/in/yourprofile',
+    fields: [
+      { id: 'f-email', label: 'Email', value: 'your.email@example.com' },
+      { id: 'f-phone', label: 'Phone', value: '(123) 456-7890' },
+      { id: 'f-linkedin', label: 'LinkedIn', value: 'linkedin.com/in/yourprofile' },
+    ],
   },
   sectionOrder: ['Summary', 'Experience', 'Education', 'Skills'],
   sections: {
@@ -262,12 +285,17 @@ export const BLANK_RESUME = {
   id: 'r1',
   owner: DEFAULT_OWNER,
   title: 'Untitled Resume',
-  templateId: 'modern',
+  templateId: 'classic',
   personalInfo: {
     name: '',
     email: '',
     phone: '',
-    location: '',
+    linkedin: '',
+    fields: [
+      { id: 'f-email', label: 'Email', value: '' },
+      { id: 'f-phone', label: 'Phone', value: '' },
+      { id: 'f-linkedin', label: 'LinkedIn', value: '' },
+    ],
   },
   sectionOrder: [],
   sections: {},
@@ -279,7 +307,7 @@ export const SECTION_NAME_SUGGESTIONS = [
   'Summary',
   'Experience',
   'Projects',
-  'CCA',
+  'Activities',
   'Education',
   'Skills',
   'Certifications',

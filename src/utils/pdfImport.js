@@ -16,7 +16,7 @@ const SECTION_PATTERNS = [
   { type: 'experience', re: /^((work|professional|employment|relevant)\s+)?(experience|history)$/i },
   { type: 'experience', re: /^employment$/i },
   { type: 'projects', re: /^(projects|personal\s+projects|academic\s+projects|key\s+projects|technical\s+projects)$/i },
-  { type: 'cca', re: /^(co-curricular\s+activities|extracurricular\s+activities|co-curriculars|extracurriculars|activities|volunteering|volunteer\s+experience|leadership(\s+experience)?|cca)$/i },
+  { type: 'activities', re: /^(co-curricular\s+activities|extracurricular\s+activities|co-curriculars|extracurriculars|activities|activity|volunteering|volunteer\s+experience|community\s+service|leadership(\s+experience)?|involvement|organizations|affiliations|cca)$/i },
   { type: 'education', re: /^(education(al)?(\s+history)?|academics?)$/i },
   { type: 'skills', re: /^((technical|core|key|relevant)\s+)?(skills|competenc(y|ies)|technologies|tools)(\s+&\s+interests)?$/i },
 ];
@@ -280,7 +280,7 @@ function parseExperienceEntry(entryLines, sectionX0, type = 'experience') {
     description = description ? `${description}\n${paragraph}` : paragraph;
   }
 
-  const defaultLabel = type === 'projects' ? 'Project' : type === 'cca' ? 'CCA' : 'Experience';
+  const defaultLabel = type === 'projects' ? 'Project' : (type === 'activities' || type === 'cca') ? 'Activity' : 'Experience';
   return {
     type,
     name: [role, company].filter(Boolean).join(' — ') || defaultLabel,
@@ -570,7 +570,7 @@ export function parseResumeLines(lines) {
         }
       }
     }
-    const isExpLike = seg.type === 'experience' || seg.type === 'projects' || seg.type === 'cca';
+    const isExpLike = seg.type === 'experience' || seg.type === 'projects' || seg.type === 'activities' || seg.type === 'cca';
     for (const entryLines of entries) {
       const block = isExpLike
         ? parseExperienceEntry(entryLines, sectionX0, seg.type)

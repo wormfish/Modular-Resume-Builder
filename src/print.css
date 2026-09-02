@@ -87,6 +87,18 @@
     margin-bottom: 0 !important;
   }
 
+  [class*='resumeContact'] a,
+  [class*='contactLink'] {
+    color: #111 !important;
+    text-decoration: underline !important;
+    text-decoration-color: #777 !important;
+    text-underline-offset: 2px !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    pointer-events: auto !important;
+    cursor: pointer !important;
+  }
+
   /* ── Sections ── */
   [class*='resumeSection'] {
     border: none !important;

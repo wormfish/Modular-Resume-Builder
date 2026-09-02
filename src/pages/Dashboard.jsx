@@ -3,7 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import BlockModal from '../components/BlockModal/BlockModal';
 import AccountModal from '../components/AccountModal/AccountModal';
 import ImportModal from '../components/ImportModal/ImportModal';
-import { BLOCK_SCHEMA, DEFAULT_OWNER } from '../utils/constants';
+import { BLOCK_SCHEMA, DEFAULT_OWNER, SECTION_TYPES } from '../utils/constants';
+import { normalizePersonalInfo } from '../utils/personalInfo';
 import { generateId } from '../utils/id';
 import { prefetchBuilderData, invalidatePrefetch, getOrFetch } from '../utils/prefetch';
 import hackathonTeam from '../assets/hackathon-team.jpg';
@@ -473,10 +474,11 @@ export default function Dashboard() {
   };
 
   const saveDefaultInfo = async (info) => {
+    const payload = normalizePersonalInfo(info);
     const res = await fetch('/api/user/defaults', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-      body: JSON.stringify(info),
+      body: JSON.stringify(payload),
     });
     if (!res.ok) throw new Error('Failed to save account details');
     const saved = await res.json();
@@ -512,7 +514,8 @@ export default function Dashboard() {
         summary: 'Summary',
         experience: 'Experience',
         projects: 'Projects',
-        cca: 'CCA',
+        activities: 'Activities',
+        cca: 'Activities',
         education: 'Education',
         skills: 'Skills',
       };
@@ -529,14 +532,10 @@ export default function Dashboard() {
       }
 
       const resumeId = generateId();
-      const personalInfo = {
-        name: '',
-        email: '',
-        phone: '',
-        location: '',
+      const personalInfo = normalizePersonalInfo({
         ...(defaultInfo || {}), // account defaults fill any gaps
         ...(parsed.personalInfo || {}), // extracted values win
-      };
+      });
 
       const res = await fetch('/api/resumes', {
         method: 'POST',
@@ -545,7 +544,7 @@ export default function Dashboard() {
           id: resumeId,
           owner,
           title,
-          templateId: 'modern',
+          templateId: 'classic',
           personalInfo,
           sections,
           sectionOrder,
@@ -625,9 +624,18 @@ export default function Dashboard() {
     return (jobTypeIds || []).map((id) => jobTypes[id] || id).filter(Boolean);
   };
 
+  // Section type filter for library blocks ('all' | 'summary' | 'experience' | 'projects' | 'activities' | 'education' | 'skills')
+  const [selectedBlockType, setSelectedBlockType] = useState('all');
+
   // Resume-scoped variants live only on their resume, and child variants
   // live under their parent's Variants popup — neither shows as a card.
   const libraryBlocks = blocks.filter((b) => !b.resumeId && !b.variantOf);
+
+  const filteredLibraryBlocks = libraryBlocks.filter((b) => {
+    if (selectedBlockType === 'all') return true;
+    if (selectedBlockType === 'activities') return b.type === 'activities' || b.type === 'cca';
+    return b.type === selectedBlockType;
+  });
 
   // Child variants grouped by parent id, for the Variants popup.
   const childrenOf = (block) =>
@@ -732,11 +740,41 @@ export default function Dashboard() {
 
         <section className={styles.section}>
           <div className={styles.sectionHeader}>
-            <h2 className={styles.sectionTitle}>My Blocks ({libraryBlocks.length})</h2>
+            <h2 className={styles.sectionTitle}>
+              My Blocks ({libraryBlocks.length})
+            </h2>
             <button className={styles.createBtn} onClick={openNewBlockModal}>
               + New Block
             </button>
           </div>
+
+          <div className={styles.filterRow}>
+            <button
+              type="button"
+              className={`${styles.filterBtn} ${selectedBlockType === 'all' ? styles.filterBtnActive : ''}`}
+              onClick={() => setSelectedBlockType('all')}
+            >
+              All ({libraryBlocks.length})
+            </button>
+            {SECTION_TYPES.map((st) => {
+              const count = libraryBlocks.filter(
+                (b) => b.type === st.key || (st.key === 'activities' && b.type === 'cca'),
+              ).length;
+              return (
+                <button
+                  key={st.key}
+                  type="button"
+                  data-block-type={st.key}
+                  className={`${styles.filterBtn} ${selectedBlockType === st.key ? styles.filterBtnActive : ''}`}
+                  onClick={() => setSelectedBlockType(st.key)}
+                >
+                  <span className={styles.filterDot} data-block-type={st.key} />
+                  {st.label} ({count})
+                </button>
+              );
+            })}
+          </div>
+
           {loading ? (
             <div className={styles.emptyState}>
               <p className={styles.emptyText}>Loading...</p>
@@ -745,61 +783,72 @@ export default function Dashboard() {
             <div className={styles.emptyState}>
               <p className={styles.emptyText}>No blocks yet. Blocks are reusable resume components.</p>
             </div>
+          ) : filteredLibraryBlocks.length === 0 ? (
+            <div className={styles.emptyState}>
+              <p className={styles.emptyText}>
+                No {SECTION_TYPES.find((s) => s.key === selectedBlockType)?.label || selectedBlockType} blocks found.
+              </p>
+            </div>
           ) : (
             <div className={styles.cardGrid}>
-              {libraryBlocks.map((block) => {
+              {filteredLibraryBlocks.map((block) => {
                 const variants = childrenOf(block);
+                const blockTypeKey = block.type === 'cca' ? 'activities' : block.type;
                 return (
-                <div key={block._id || block.id} className={styles.card}>
-                  <div className={styles.cardHeader}>
-                    <span className={styles.typeChip}>
-                      {BLOCK_SCHEMA[block.type]?.label || block.type}
-                    </span>
-                    <h3 className={styles.cardTitle}>
-                      {block.name || `${BLOCK_SCHEMA[block.type]?.label || ''} block`}
-                    </h3>
-                  </div>
-                  <p className={styles.cardMeta}>{getBlockDisplayText(block)}</p>
-                  <p className={styles.cardTags}>
-                    {resolveJobTypeNames(block.jobTypeIds || block.jobTypes).map((name) => (
-                      <span key={name} className={styles.tag}>{name}</span>
-                    ))}
-                  </p>
-                  <div className={styles.cardFooter}>
-                    {variants.length > 0 && (
-                      <button
-                        className={styles.variantsBtn}
-                        onClick={() => setVariantsModalBlock(block)}
-                        title="Show all child variants of this block"
-                      >
-                        Variants ({variants.length})
-                      </button>
-                    )}
-                    <div className={styles.cardFooterIcons}>
-                      <button
-                        className={styles.editBtn}
-                        onClick={() => duplicateBlock(block)}
-                        title="Duplicate block"
-                      >
-                        &#10697;
-                      </button>
-                      <button
-                        className={styles.editBtn}
-                        onClick={() => openEditBlockModal(block)}
-                        title="Edit block"
-                      >
-                        ✎
-                      </button>
-                      <button
-                        className={styles.editBtn}
-                        onClick={() => deleteBlock(block)}
-                        title="Delete block"
-                      >
-                        &#128465;
-                      </button>
+                  <div
+                    key={block._id || block.id}
+                    className={`${styles.card} ${styles.blockCardItem}`}
+                    data-block-type={blockTypeKey}
+                  >
+                    <div className={styles.cardHeader}>
+                      <span className={styles.typeChip} data-block-type={blockTypeKey}>
+                        {BLOCK_SCHEMA[block.type]?.label || block.type}
+                      </span>
+                      <h3 className={styles.cardTitle}>
+                        {block.name || `${BLOCK_SCHEMA[block.type]?.label || ''} block`}
+                      </h3>
+                    </div>
+                    <p className={styles.cardMeta}>{getBlockDisplayText(block)}</p>
+                    <p className={styles.cardTags}>
+                      {resolveJobTypeNames(block.jobTypeIds || block.jobTypes).map((name) => (
+                        <span key={name} className={styles.tag}>{name}</span>
+                      ))}
+                    </p>
+                    <div className={styles.cardFooter}>
+                      {variants.length > 0 && (
+                        <button
+                          className={styles.variantsBtn}
+                          onClick={() => setVariantsModalBlock(block)}
+                          title="Show all child variants of this block"
+                        >
+                          Variants ({variants.length})
+                        </button>
+                      )}
+                      <div className={styles.cardFooterIcons}>
+                        <button
+                          className={styles.editBtn}
+                          onClick={() => duplicateBlock(block)}
+                          title="Duplicate block"
+                        >
+                          &#10697;
+                        </button>
+                        <button
+                          className={styles.editBtn}
+                          onClick={() => openEditBlockModal(block)}
+                          title="Edit block"
+                        >
+                          ✎
+                        </button>
+                        <button
+                          className={styles.editBtn}
+                          onClick={() => deleteBlock(block)}
+                          title="Delete block"
+                        >
+                          &#128465;
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
                 );
               })}
             </div>

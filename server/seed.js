@@ -112,7 +112,7 @@ const blocks = [
   {
     _id: 'b7',
     owner: OWNER,
-    type: 'cca',
+    type: 'activities',
     jobTypeIds: ['jt2'],
     content: {
       role: 'President',
@@ -130,12 +130,17 @@ const resume = {
   _id: 'r1',
   owner: OWNER,
   title: 'My Resume',
-  templateId: 'modern',
+  templateId: 'classic',
   personalInfo: {
     name: 'Your Name',
     email: 'your.email@example.com',
     phone: '(123) 456-7890',
-    location: 'City, Country',
+    linkedin: 'linkedin.com/in/yourprofile',
+    fields: [
+      { id: 'f-email', label: 'Email', value: 'your.email@example.com' },
+      { id: 'f-phone', label: 'Phone', value: '(123) 456-7890' },
+      { id: 'f-linkedin', label: 'LinkedIn', value: 'linkedin.com/in/yourprofile' },
+    ],
   },
   sectionOrder: ['Summary', 'Experience', 'Education', 'Skills'],
   sections: {

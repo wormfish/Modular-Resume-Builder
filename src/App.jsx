@@ -11,6 +11,7 @@ import {
   DEFAULT_OWNER,
   BLOCK_SCHEMA,
 } from './utils/constants';
+import { normalizePersonalInfo } from './utils/personalInfo';
 import { generateId } from './utils/id';
 import { getOrFetch, invalidatePrefetch } from './utils/prefetch';
 import BlockLibrary from './components/BlockLibrary/BlockLibrary';
@@ -128,10 +129,11 @@ export default function App() {
   const saveDefaultPersonalInfo = useCallback(async () => {
     setSaveDefaultStatus('saving');
     try {
+      const payload = normalizePersonalInfo(resume.personalInfo || {});
       const res = await fetch('/api/user/defaults', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-        body: JSON.stringify(resume.personalInfo || {}),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error('Failed to save defaults');
       const saved = await res.json();
@@ -164,7 +166,7 @@ export default function App() {
     // New resumes start from the account's saved personal details (if any).
     const blankWithDefaults = {
       ...BLANK_RESUME,
-      personalInfo: { ...BLANK_RESUME.personalInfo, ...defaultPersonalInfo },
+      personalInfo: normalizePersonalInfo({ ...BLANK_RESUME.personalInfo, ...defaultPersonalInfo }),
     };
     setResume(
       extImport?.title ? { ...blankWithDefaults, title: extImport.title } : blankWithDefaults,
@@ -341,14 +343,8 @@ export default function App() {
         }
       }
 
-      // Ensure all personalInfo fields exist
-      next.personalInfo = {
-        name: '',
-        email: '',
-        phone: '',
-        location: '',
-        ...next.personalInfo,
-      };
+      // Ensure personalInfo is normalized with fields list
+      next.personalInfo = normalizePersonalInfo(next.personalInfo);
 
       return next;
     });
@@ -681,11 +677,19 @@ export default function App() {
     setResume((prev) => ({ ...prev, templateId }));
   }, [setResume]);
 
-  const updatePersonalInfoField = useCallback((field, value) => {
-    setResume((prev) => ({
-      ...prev,
-      personalInfo: { ...prev.personalInfo, [field]: value },
-    }));
+  const updatePersonalInfoField = useCallback((fieldOrObject, value) => {
+    setResume((prev) => {
+      let nextInfo;
+      if (typeof fieldOrObject === 'object' && fieldOrObject !== null) {
+        nextInfo = fieldOrObject;
+      } else {
+        nextInfo = { ...prev.personalInfo, [fieldOrObject]: value };
+      }
+      return {
+        ...prev,
+        personalInfo: normalizePersonalInfo(nextInfo),
+      };
+    });
   }, [setResume]);
 
   const addSection = useCallback(() => {
@@ -1022,7 +1026,10 @@ export default function App() {
             {/* Both panels stay mounted; visibility toggles via CSS. Remounting
                 JobDescriptionPanel would reset its one-shot refs and re-run the
                 paid extract + auto-fill calls on every tab switch. */}
-            <div style={{ display: activeRightTab === 'properties' ? 'contents' : 'none' }}>
+            <div
+              className={styles.tabPane}
+              style={{ display: activeRightTab === 'properties' ? 'flex' : 'none' }}
+            >
               <PropertiesPanel
                 resume={resume}
                 personalInfo={personalInfo}
@@ -1032,7 +1039,10 @@ export default function App() {
                 saveDefaultStatus={saveDefaultStatus}
               />
             </div>
-            <div style={{ display: activeRightTab === 'jobDescription' ? 'contents' : 'none' }}>
+            <div
+              className={styles.tabPane}
+              style={{ display: activeRightTab === 'jobDescription' ? 'flex' : 'none' }}
+            >
               <JobDescriptionPanel
                 onKeywordsExtracted={setExtractedKeywords}
                 onAutoFill={handleAutoFill}

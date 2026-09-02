@@ -134,6 +134,7 @@
   background: var(--purple);
 }
 
+.swatch[data-block-type='activities'],
 .swatch[data-block-type='cca'] {
   background: var(--teal);
 }

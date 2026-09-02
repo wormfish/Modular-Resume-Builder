@@ -323,20 +323,138 @@
   flex-shrink: 0;
 }
 
-/* Section-type chip shown at the top right of each block card */
+/* ── Block Section Filter Row ───────────────────────────────── */
+
+.filterRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+  margin-bottom: 20px;
+}
+
+.filterBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  background: var(--panel);
+  border: 1.5px dashed var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.filterBtn:hover {
+  color: var(--ink);
+  border-color: var(--ink);
+  background: #fff;
+}
+
+.filterBtnActive {
+  background: #fff;
+  color: var(--ink);
+  font-weight: 700;
+  border: 1.5px solid var(--ink);
+  box-shadow: 2px 2px 0 var(--ink);
+}
+
+.filterDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--muted);
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.filterDot[data-block-type='summary'] { background: var(--primary); }
+.filterDot[data-block-type='experience'] { background: var(--pink); }
+.filterDot[data-block-type='projects'] { background: var(--purple); }
+.filterDot[data-block-type='activities'],
+.filterDot[data-block-type='cca'] { background: var(--teal); }
+.filterDot[data-block-type='education'] { background: var(--yellow); }
+.filterDot[data-block-type='skills'] { background: var(--green); }
+
+/* ── Block Card Item (Color Spines) ─────────────────────────── */
+
+.blockCardItem {
+  position: relative;
+  padding-left: 20px;
+}
+
+.blockCardItem::before {
+  content: '';
+  position: absolute;
+  left: 6px;
+  top: 8px;
+  bottom: 8px;
+  width: 5px;
+  border-radius: 2px;
+  background: var(--muted);
+}
+
+.blockCardItem[data-block-type='summary']::before { background: var(--primary); }
+.blockCardItem[data-block-type='experience']::before { background: var(--pink); }
+.blockCardItem[data-block-type='projects']::before { background: var(--purple); }
+.blockCardItem[data-block-type='activities']::before,
+.blockCardItem[data-block-type='cca']::before { background: var(--teal); }
+.blockCardItem[data-block-type='education']::before { background: var(--yellow); }
+.blockCardItem[data-block-type='skills']::before { background: var(--green); }
+
+/* ── Section Type Chip (Color Coded) ────────────────────────── */
+
 .typeChip {
   flex-shrink: 0;
   font-family: var(--font-mono);
   font-size: 9px;
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   color: var(--ink);
-  background: var(--panel);
+  background: var(--panel-2);
   border: 1.5px solid var(--ink);
   border-radius: 3px;
-  padding: 2px 6px;
+  padding: 2px 7px;
   align-self: flex-start;
+  transition: all 0.12s ease;
+}
+
+.typeChip[data-block-type='summary'] {
+  background: var(--primary-light);
+  color: var(--primary-deep, #1a34c4);
+}
+
+.typeChip[data-block-type='experience'] {
+  background: var(--pink-light);
+  color: #c2185b;
+}
+
+.typeChip[data-block-type='projects'] {
+  background: var(--purple-light);
+  color: #6d28d9;
+}
+
+.typeChip[data-block-type='activities'],
+.typeChip[data-block-type='cca'] {
+  background: var(--teal-light);
+  color: #0369a1;
+}
+
+.typeChip[data-block-type='education'] {
+  background: #fef08a;
+  color: #854d0e;
+}
+
+.typeChip[data-block-type='skills'] {
+  background: var(--green-light);
+  color: #15803d;
 }
 
 /* Opens the child-variants popup for a block */

@@ -32,8 +32,8 @@ export default function Home() {
             Projects
           </li>
           <li>
-            <span className={styles.swatch} data-block-type="cca" />
-            CCA
+            <span className={styles.swatch} data-block-type="activities" />
+            Activities
           </li>
           <li>
             <span className={styles.swatch} data-block-type="education" />

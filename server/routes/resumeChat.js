@@ -11,11 +11,13 @@ function buildResumeContext(resume, blocks) {
   }
 
   const info = resume?.personalInfo || {};
+  const contactParts = Array.isArray(info.fields)
+    ? info.fields.map((f) => `${f.label}: ${f.value || '(empty)'}`).join(' | ')
+    : `${info.email || '(empty)'} | ${info.phone || '(empty)'} | ${info.location || '(empty)'}`;
+
   const lines = [];
   lines.push(`Title: ${resume?.title || 'Untitled'}`);
-  lines.push(
-    `Personal info: ${info.name || '(empty)'} | ${info.email || '(empty)'} | ${info.phone || '(empty)'} | ${info.location || '(empty)'}`,
-  );
+  lines.push(`Personal info: Name: ${info.name || '(empty)'} | ${contactParts}`);
 
   const sectionOrder = resume?.sectionOrder || [];
   const sections = resume?.sections || {};

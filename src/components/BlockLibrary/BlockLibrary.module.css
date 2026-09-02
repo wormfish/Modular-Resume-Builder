@@ -198,6 +198,7 @@
   background: var(--purple);
 }
 
+.blockCard[data-block-type='activities']::before,
 .blockCard[data-block-type='cca']::before {
   background: var(--teal);
 }

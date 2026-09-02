@@ -1,4 +1,5 @@
 import { DRAG_KEYS, DRAG_SOURCE } from '../../utils/dragKeys';
+import { formatContactUrl } from '../../utils/personalInfo';
 import styles from './ResumeBlock.module.css';
 
 export default function ResumeBlock({ blockId, blockType, sectionId, index, rendered, variantKind = null, onRemove, onEdit, onDuplicate, formatBody, onCanvasDragStart, onCanvasDragEnd }) {
@@ -16,6 +17,11 @@ export default function ResumeBlock({ blockId, blockType, sectionId, index, rend
     e.currentTarget.classList.remove(styles.dragging);
     onCanvasDragEnd?.();
   };
+
+  const isLocationUrl = rendered.location && (
+    /^https?:\/\//i.test(rendered.location.trim()) ||
+    /^(www\.)?(github\.com|linkedin\.com|gitlab\.com)/i.test(rendered.location.trim())
+  );
 
   return (
     <div
@@ -60,7 +66,22 @@ export default function ResumeBlock({ blockId, blockType, sectionId, index, rend
       {(rendered.title || rendered.location) && (
         <div className={styles.entryHeader}>
           {rendered.title && <div className={styles.entryTitle}>{rendered.title}</div>}
-          {rendered.location && <div className={styles.entryLocation}>{rendered.location}</div>}
+          {rendered.location && (
+            <div className={styles.entryLocation}>
+              {isLocationUrl ? (
+                <a
+                  href={formatContactUrl(rendered.location.trim())}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ color: 'inherit', textDecoration: 'underline', textUnderlineOffset: '2px' }}
+                >
+                  {rendered.location}
+                </a>
+              ) : (
+                rendered.location
+              )}
+            </div>
+          )}
         </div>
       )}
       {(rendered.subtitle || rendered.dates) && (

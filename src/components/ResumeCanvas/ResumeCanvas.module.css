@@ -113,6 +113,19 @@
   margin-bottom: 16px;
 }
 
+.contactLink {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: rgba(29, 39, 51, 0.35);
+  text-underline-offset: 2.5px;
+  transition: color 0.12s ease, text-decoration-color 0.12s ease;
+}
+
+.contactLink:hover {
+  color: var(--primary);
+  text-decoration-color: var(--primary);
+}
+
 .resumeSection {
   margin-bottom: 20px;
   border: 2px dashed transparent;

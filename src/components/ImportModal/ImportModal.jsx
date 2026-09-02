@@ -175,11 +175,11 @@ export default function ImportModal({ getAuthHeaders, onImport, onClose }) {
               {result.viaAI ? ' (via AI)' : ''}
             </p>
             <div className={styles.countRow}>
-              {['summary', 'experience', 'projects', 'cca', 'education', 'skills'].map(
+              {['summary', 'experience', 'projects', 'activities', 'cca', 'education', 'skills'].map(
                 (t) =>
                   counts[t] ? (
                     <span key={t} className={styles.countChip}>
-                      {counts[t]} {t}
+                      {counts[t]} {t === 'cca' ? 'activities' : t}
                     </span>
                   ) : null,
               )}

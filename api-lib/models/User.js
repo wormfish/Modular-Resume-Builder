@@ -12,12 +12,7 @@ const userSchema = new mongoose.Schema(
     jobTypesInitialized: { type: Boolean, default: true },
     // Saved personal details used to prefill new resumes ("Save as Default" in
     // the builder, editable from the Dashboard account modal). Empty until set.
-    defaultPersonalInfo: {
-      name: { type: String, default: '' },
-      email: { type: String, default: '' },
-      phone: { type: String, default: '' },
-      location: { type: String, default: '' },
-    },
+    defaultPersonalInfo: { type: mongoose.Schema.Types.Mixed, default: () => ({ name: '', fields: [] }) },
   },
   { timestamps: true },
 );

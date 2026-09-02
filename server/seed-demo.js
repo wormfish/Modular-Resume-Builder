@@ -181,10 +181,10 @@ const blocks = [
       'Open-source distributed log processor handling 50k events/sec. Implemented zero-copy JSON parsing in Rust with Node.js bindings; adopted by 15+ engineering teams.',
   },
 
-  // CCA / Extracurriculars
+  // Activities / Extracurriculars
   {
     id: 'demo-b15',
-    type: 'cca',
+    type: 'activities',
     jobTypeIds: ['jt2', 'jt1'],
     role: 'Co-Organizer & Technical Mentor',
     company: 'Pacific NW Student Hackathon',
@@ -202,6 +202,12 @@ const personalInfo = {
   email: 'demo@example.com',
   phone: '(503) 555-0142',
   location: 'Seattle, WA',
+  fields: [
+    { id: 'f-email', label: 'Email', value: 'demo@example.com' },
+    { id: 'f-phone', label: 'Phone', value: '(503) 555-0142' },
+    { id: 'f-location', label: 'Location', value: 'Seattle, WA' },
+    { id: 'f-linkedin', label: 'LinkedIn', value: 'linkedin.com/in/jordanavery' },
+  ],
 };
 
 const resumes = [
@@ -209,7 +215,7 @@ const resumes = [
     // Fully composed — shows off the finished layout, drag & drop ordering, PDF export
     id: 'demo-r1',
     title: 'Jordan Avery — Master',
-    templateId: 'modern',
+    templateId: 'classic',
     personalInfo,
     sectionOrder: ['Summary', 'Experience', 'Education', 'Skills'],
     sections: {
@@ -235,8 +241,18 @@ const resumes = [
     // Blank — shows the empty-state UI and manual building from scratch
     id: 'demo-r3',
     title: 'Blank canvas',
-    templateId: 'modern',
-    personalInfo: { name: '', email: '', phone: '', location: '' },
+    templateId: 'classic',
+    personalInfo: {
+      name: '',
+      email: '',
+      phone: '',
+      linkedin: '',
+      fields: [
+        { id: 'f-email', label: 'Email', value: '' },
+        { id: 'f-phone', label: 'Phone', value: '' },
+        { id: 'f-linkedin', label: 'LinkedIn', value: '' },
+      ],
+    },
     sectionOrder: [],
     sections: {},
   },

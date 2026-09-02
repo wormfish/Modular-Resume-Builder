@@ -35,6 +35,7 @@
   background: var(--purple);
 }
 
+.resumeBlock[data-block-type='activities']::before,
 .resumeBlock[data-block-type='cca']::before {
   background: var(--teal);
 }
