@@ -474,6 +474,14 @@
   gap: 6px;
 }
 
+.autoParseLabelRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .autoParseField label {
   font-family: var(--font-mono);
   font-size: 11px;
@@ -481,6 +489,185 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--ink);
+  margin: 0;
+}
+
+.micBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 9px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink);
+  background: #fff;
+  border: 1.5px solid var(--ink);
+  border-radius: var(--radius);
+  cursor: pointer;
+  box-shadow: 2px 2px 0 var(--ink);
+  transition: all 0.12s ease;
+}
+
+.micBtn:hover:not(:disabled) {
+  background: var(--pink-light);
+  border-color: var(--pink);
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 var(--ink);
+}
+
+.micBtn:active:not(:disabled) {
+  transform: translate(1px, 1px);
+  box-shadow: 1px 1px 0 var(--ink);
+}
+
+.micBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.micBtnActive {
+  background: #fee2e2 !important;
+  border-color: #ef4444 !important;
+  color: #b91c1c !important;
+  box-shadow: 2px 2px 0 #b91c1c !important;
+  animation: micBorderPulse 1.6s infinite ease-in-out;
+}
+
+@keyframes micBorderPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4), 2px 2px 0 #b91c1c;
+  }
+  50% {
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2), 2px 2px 0 #b91c1c;
+  }
+}
+
+.micIconWrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.recordingPulseDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ef4444;
+  animation: pulseDot 1s infinite alternate;
+}
+
+@keyframes pulseDot {
+  0% { transform: scale(0.85); opacity: 0.6; }
+  100% { transform: scale(1.3); opacity: 1; }
+}
+
+.modelPill {
+  font-size: 8.5px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  letter-spacing: 0.04em;
+}
+
+.liveVoiceBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 10px;
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  border-radius: var(--radius);
+  font-size: 11.5px;
+}
+
+.liveBadgeGroup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.liveBadge {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #dc2626;
+  background: #fee2e2;
+  padding: 2px 6px;
+  border-radius: 3px;
+  border: 1px solid #ef4444;
+  animation: liveBlink 1.4s infinite ease-in-out;
+}
+
+@keyframes liveBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.45; }
+}
+
+.soundWave {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 14px;
+}
+
+.soundWave span {
+  display: block;
+  width: 2.5px;
+  height: 100%;
+  background: #ef4444;
+  border-radius: 1px;
+  animation: waveBounce 0.8s infinite ease-in-out;
+}
+
+.soundWave span:nth-child(1) { animation-delay: 0.1s; height: 35%; }
+.soundWave span:nth-child(2) { animation-delay: 0.25s; height: 70%; }
+.soundWave span:nth-child(3) { animation-delay: 0.4s; height: 100%; }
+.soundWave span:nth-child(4) { animation-delay: 0.15s; height: 60%; }
+.soundWave span:nth-child(5) { animation-delay: 0.3s; height: 40%; }
+
+@keyframes waveBounce {
+  0%, 100% { transform: scaleY(0.3); }
+  50% { transform: scaleY(1); }
+}
+
+.liveStatusText {
+  flex: 1;
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: #991b1b;
+  font-style: italic;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stopVoiceBtn {
+  padding: 3px 8px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #991b1b;
+  background: #fff;
+  border: 1px solid #dc2626;
+  border-radius: var(--radius);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.12s ease;
+}
+
+.stopVoiceBtn:hover {
+  background: #dc2626;
+  color: #fff;
 }
 
 .autoParseTextarea {

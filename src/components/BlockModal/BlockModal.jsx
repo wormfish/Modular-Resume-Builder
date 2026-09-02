@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { BLOCK_SCHEMA } from '../../utils/constants';
+import { SpeechSession } from '../../utils/speechTranscriber';
 import styles from './BlockModal.module.css';
 
 export default function BlockModal({
@@ -19,12 +20,76 @@ export default function BlockModal({
   const [autoParseText, setAutoParseText] = useState('');
   const [isAutoParsing, setIsAutoParsing] = useState(false);
   const [autoParseError, setAutoParseError] = useState('');
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingStatus, setRecordingStatus] = useState('idle');
+  const [recordingMessage, setRecordingMessage] = useState('');
+  const speechSessionRef = useRef(null);
+
   const schema = BLOCK_SCHEMA[tempBlock.type];
   const jobTypeIds = tempBlock.jobTypeIds || [];
 
+  // Cleanup speech session on unmount
+  useEffect(() => {
+    return () => {
+      if (speechSessionRef.current) {
+        speechSessionRef.current.cleanup();
+        speechSessionRef.current = null;
+      }
+    };
+  }, []);
+
+  const handleToggleVoice = async () => {
+    setAutoParseError('');
+    if (isRecording) {
+      setIsRecording(false);
+      if (speechSessionRef.current) {
+        await speechSessionRef.current.stop();
+        speechSessionRef.current = null;
+      }
+    } else {
+      if (speechSessionRef.current) {
+        speechSessionRef.current.cleanup();
+      }
+      const session = new SpeechSession({
+        onTranscript: (text) => {
+          setAutoParseText(text);
+        },
+        onStatusChange: (status, message) => {
+          setRecordingStatus(status);
+          setRecordingMessage(message || '');
+          if (status === 'listening') {
+            setIsRecording(true);
+          } else if (status === 'idle' || status === 'error') {
+            setIsRecording(false);
+          }
+        },
+        onError: (err) => {
+          setAutoParseError(err);
+          setIsRecording(false);
+        },
+      });
+      speechSessionRef.current = session;
+      await session.start(autoParseText);
+    }
+  };
+
+  const handleCloseAutoParse = async () => {
+    if (speechSessionRef.current) {
+      await speechSessionRef.current.stop();
+      speechSessionRef.current = null;
+    }
+    setIsRecording(false);
+    setAutoParseOpen(false);
+  };
+
   const handleAutoParseSubmit = async () => {
+    if (speechSessionRef.current) {
+      await speechSessionRef.current.stop();
+      speechSessionRef.current = null;
+      setIsRecording(false);
+    }
     if (!autoParseText.trim()) {
-      setAutoParseError('Please type or paste some notes to parse.');
+      setAutoParseError('Please type or speak some notes to parse.');
       return;
     }
     setIsAutoParsing(true);
@@ -41,6 +106,7 @@ export default function BlockModal({
           text: autoParseText.trim(),
           targetType: tempBlock.type,
           currentBlock: tempBlock,
+          clientDate: new Date().toISOString(),
         }),
       });
 
@@ -340,7 +406,7 @@ export default function BlockModal({
           )}
 
           <div className={styles.field}>
-            <label>Job Types</label>
+            <label>Tags</label>
             <div className={styles.jobTypeSelect}>
               {Object.entries(jobTypes).map(([id, name]) => (
                 <span
@@ -357,7 +423,7 @@ export default function BlockModal({
           <div className={styles.field}>
             <input
               type="text"
-              placeholder="Add custom job type..."
+              placeholder="Add custom tag..."
               value={newJobTypeName}
               onChange={(e) => setNewJobTypeName(e.target.value)}
               onKeyDown={(e) => {
@@ -368,7 +434,7 @@ export default function BlockModal({
               }}
             />
             <button className={styles.addBtn} onClick={handleAddCustomJobType}>
-              Add Job Type
+              Add Tag
             </button>
           </div>
         </div>
@@ -410,7 +476,7 @@ export default function BlockModal({
         </div>
 
         {autoParseOpen && (
-          <div className={styles.autoParseOverlay} onClick={() => setAutoParseOpen(false)}>
+          <div className={styles.autoParseOverlay} onClick={handleCloseAutoParse}>
             <div className={styles.autoParseModal} onClick={(e) => e.stopPropagation()}>
               <div className={styles.autoParseHeader}>
                 <div className={styles.autoParseTitleGroup}>
@@ -425,7 +491,7 @@ export default function BlockModal({
                 <button
                   type="button"
                   className={styles.closeBtn}
-                  onClick={() => setAutoParseOpen(false)}
+                  onClick={handleCloseAutoParse}
                 >
                   &times;
                 </button>
@@ -440,12 +506,70 @@ export default function BlockModal({
                     <span className={styles.starPill}><strong>R</strong>esult</span>
                   </div>
                   <p className={styles.starGuideText}>
-                    Type or paste what you went through (your role, company, the situation/challenge you faced, actions you took, and measurable results). The AI will structure it into impactful, concise STAR-method bullet points with quantified results.
+                    Type, paste, or speak out what you went through (your role, company, challenges, actions taken, and measurable results). The AI will structure it into impactful STAR-method bullet points with quantified results.
                   </p>
                 </div>
 
                 <div className={styles.autoParseField}>
-                  <label>What did you work on / go through?</label>
+                  <div className={styles.autoParseLabelRow}>
+                    <label>What did you work on / go through?</label>
+                    <button
+                      type="button"
+                      className={`${styles.micBtn} ${isRecording ? styles.micBtnActive : ''}`}
+                      onClick={handleToggleVoice}
+                      disabled={isAutoParsing}
+                      title={
+                        isRecording
+                          ? 'Click to stop voice dictation'
+                          : 'Talk out your experience (Real-time Speech-to-Text)'
+                      }
+                    >
+                      <span className={styles.micIconWrap}>
+                        {isRecording ? (
+                          <span className={styles.recordingPulseDot} />
+                        ) : (
+                          <svg
+                            width="12"
+                            height="12"
+                            viewBox="0 0 24 24"
+                            fill="currentColor"
+                            aria-hidden="true"
+                          >
+                            <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z" />
+                            <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z" />
+                          </svg>
+                        )}
+                      </span>
+                      <span>{isRecording ? 'Listening (Click to Stop)' : '🎙️ Talk / Voice Dictate'}</span>
+                      <span className={styles.modelPill}>Whisper AI</span>
+                    </button>
+                  </div>
+
+                  {isRecording && (
+                    <div className={styles.liveVoiceBar}>
+                      <div className={styles.liveBadgeGroup}>
+                        <span className={styles.liveBadge}>● LIVE</span>
+                        <div className={styles.soundWave}>
+                          <span />
+                          <span />
+                          <span />
+                          <span />
+                          <span />
+                        </div>
+                      </div>
+                      <span className={styles.liveStatusText}>
+                        {recordingMessage || 'Listening in real time... Speak freely'}
+                      </span>
+                      <button
+                        type="button"
+                        className={styles.stopVoiceBtn}
+                        onClick={handleToggleVoice}
+                      >
+                        Stop Recording
+                      </button>
+                    </div>
+                  )}
+
                   <textarea
                     className={styles.autoParseTextarea}
                     rows={6}
@@ -465,7 +589,7 @@ export default function BlockModal({
               <div className={styles.autoParseFooter}>
                 <button
                   type="button"
-                  onClick={() => setAutoParseOpen(false)}
+                  onClick={handleCloseAutoParse}
                   disabled={isAutoParsing}
                 >
                   Cancel

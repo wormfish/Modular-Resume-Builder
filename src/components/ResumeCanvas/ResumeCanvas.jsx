@@ -149,10 +149,12 @@ export default function ResumeCanvas({
                 onDragLeave={handleDragLeave}
               >
                 <div className={styles.sectionHeader}>
+                  <h2 className={styles.sectionTitlePrint}>{sectionTitle}</h2>
                   <input
                     className={styles.sectionTitle}
                     value={sectionTitle}
                     onChange={(e) => onUpdateSectionTitle(sectionTitle, e.target.value)}
+                    data-print-hide
                   />
                   <div className={styles.sectionActions} data-print-hide>
                     <button

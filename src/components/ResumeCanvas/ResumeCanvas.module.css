@@ -97,20 +97,20 @@
 }
 
 .resumeHeader {
-  margin-bottom: 10px;
+  margin-bottom: 6px;
 }
 
 .resumeName {
-  font-size: 24px;
+  font-size: 18px;
   font-weight: 800;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
   color: #111827;
 }
 
 .resumeContact {
-  font-size: 11.5px;
+  font-size: 11px;
   color: var(--muted);
-  margin-bottom: 16px;
+  margin-bottom: 10px;
 }
 
 .contactLink {
@@ -127,11 +127,11 @@
 }
 
 .resumeSection {
-  margin-bottom: 20px;
+  margin-bottom: 8px;
   border: 2px dashed transparent;
   border-radius: var(--radius);
-  min-height: 50px;
-  padding: 6px;
+  min-height: 40px;
+  padding: 4px 6px;
   transition: border-color 0.12s, background 0.12s;
 }
 
@@ -144,9 +144,13 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
   border-bottom: 2px solid #000;
-  padding-bottom: 4px;
+  padding-bottom: 3px;
+}
+
+.sectionTitlePrint {
+  display: none;
 }
 
 .sectionTitle {
@@ -224,7 +228,7 @@
 
 /* Template: Modern */
 .template-modern .resumeName {
-  font-size: 24px;
+  font-size: 19px;
   font-weight: 800;
   color: #111827;
 }
@@ -235,7 +239,7 @@
 }
 
 .template-classic .resumeName {
-  font-size: 22px;
+  font-size: 18px;
   font-weight: 700;
   text-align: center;
 }

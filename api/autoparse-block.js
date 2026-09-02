@@ -11,7 +11,10 @@ CRITICAL RESUME WRITING INSTRUCTIONS:
    - Clearly describe the challenge/context and the proactive action taken.
    - Quantify results and business impact with concrete numbers, metrics, percentages, dollar values, or performance improvements (e.g., "increasing throughput by 35%", "reducing latency by 45%", "delivering $150k in annual savings", "scaling to 500k+ users", "mentoring 6 engineers"). If exact metrics are absent from the user's notes, derive realistic, plausible impact numbers or strong qualitative outcomes based on the context.
 2. CONCISENESS & IMPACT: Write concise, punchy, professional bullets (2 to 4 bullets per role/project). Each bullet MUST start with "• ".
-3. FORMAT: Return ONLY valid JSON (no markdown formatting, no code fencing, no conversational text) matching the schema:
+3. DATE & TIME RESOLUTION:
+   - Carefully resolve any relative time references (e.g. "2 months ago", "last month", "since 3 months ago", "started in June", "last year", "summer 2023", "Present") into concrete calendar dates based on the TODAY'S DATE REFERENCE provided in the prompt.
+   - Format dates as "Mon YYYY" (e.g. "Jul 2026", "Jan 2024", "Present", "May 2025 - Present").
+4. FORMAT: Return ONLY valid JSON (no markdown formatting, no code fencing, no conversational text) matching the schema:
 
 For "experience":
 {
@@ -114,7 +117,7 @@ export default async function handler(req, res) {
   if (!user) return;
 
   try {
-    const { text, targetType, currentBlock } = req.body || {};
+    const { text, targetType, currentBlock, clientDate } = req.body || {};
     if (!text || !text.trim()) {
       return res.status(400).json({ error: 'Please enter details or notes to parse.' });
     }
@@ -124,7 +127,20 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'NVIDIA API key not configured' });
     }
 
-    const userPrompt = `Target Block Type: ${targetType || 'experience'}
+    const now = clientDate ? new Date(clientDate) : new Date();
+    const currentDateStr = !isNaN(now.getTime())
+      ? now.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+      : new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    const currentMonthYear = !isNaN(now.getTime())
+      ? now.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+      : new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+
+    const userPrompt = `TODAY'S DATE REFERENCE:
+- Today's Date: ${currentDateStr} (Current Month: ${currentMonthYear})
+- When the user mentions relative time expressions (e.g. "2 months ago", "last month", "started 3 months ago", "since January", "until 2 months ago"), calculate the exact calendar month & year relative to ${currentDateStr}.
+- Format dates for "startDate" and "endDate" as standard concise resume format: "Mon YYYY" (e.g. "Jul 2026", "Jan 2024", "Present").
+
+Target Block Type: ${targetType || 'experience'}
 Existing Block Details: ${JSON.stringify(currentBlock || {})}
 
 User Experience / Raw Notes:

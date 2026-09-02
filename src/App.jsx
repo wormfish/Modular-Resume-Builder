@@ -20,6 +20,7 @@ import PropertiesPanel from './components/PropertiesPanel/PropertiesPanel';
 import JobDescriptionPanel from './components/JobDescriptionPanel/JobDescriptionPanel';
 import AIChat from './components/AIChat/AIChat';
 import BlockModal from './components/BlockModal/BlockModal';
+import ExportModal from './components/ExportModal/ExportModal';
 import DebugMenu from './components/DebugMenu/DebugMenu';
 import styles from './App.module.css';
 
@@ -41,7 +42,27 @@ export default function App() {
   const [isCanvasBlockDragging, setIsCanvasBlockDragging] = useState(false);
 
   const [saveStatus, setSaveStatus] = useState(''); // '' | 'saving' | 'saved' | 'error'
+  const [exportModalOpen, setExportModalOpen] = useState(false);
   const exportPdf = useExportPdf();
+
+  const handleExportPdf = useCallback(() => {
+    try {
+      if (localStorage.getItem('mrb-export-guide-dismissed') === '1') {
+        exportPdf();
+        return;
+      }
+    } catch {
+      // localStorage unavailable
+    }
+    setExportModalOpen(true);
+  }, [exportPdf]);
+
+  const handleConfirmExport = useCallback(() => {
+    setExportModalOpen(false);
+    setTimeout(() => {
+      exportPdf();
+    }, 50);
+  }, [exportPdf]);
 
   // Right panel tab state
   const [activeRightTab, setActiveRightTab] = useState('properties'); // 'properties' | 'jobDescription'
@@ -965,7 +986,7 @@ export default function App() {
         </div>
         <div className={styles.headerActions}>
           <DebugMenu resume={resume} blocks={blocks} />
-          <button onClick={exportPdf}>Export PDF</button>
+          <button onClick={handleExportPdf}>Export PDF</button>
           <button
             className={styles.saveBtn}
             onClick={saveResumeToDb}
@@ -1067,6 +1088,13 @@ export default function App() {
           onSaveVariant={saveBlockAsVariant}
           onSaveChildVariant={saveBlockAsChildVariant}
           onClose={closeModal}
+        />
+      )}
+
+      {exportModalOpen && (
+        <ExportModal
+          onConfirm={handleConfirmExport}
+          onClose={() => setExportModalOpen(false)}
         />
       )}
 

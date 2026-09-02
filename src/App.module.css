@@ -33,9 +33,7 @@ button:active {
   box-shadow: 1px 1px 0 var(--ink);
 }
 
-input,
-select,
-textarea {
+:where(input:not([type='checkbox']):not([type='radio']), select, textarea) {
   width: 100%;
   padding: 8px 10px;
   border: var(--border-w) solid var(--ink);
@@ -47,9 +45,7 @@ textarea {
   margin-top: 4px;
 }
 
-input:focus,
-select:focus,
-textarea:focus {
+:where(input:not([type='checkbox']):not([type='radio']), select, textarea):focus {
   outline: none;
   border-color: var(--primary);
   box-shadow: 3px 3px 0 var(--primary);

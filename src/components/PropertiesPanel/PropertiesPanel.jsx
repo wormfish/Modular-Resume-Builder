@@ -136,7 +136,7 @@ export default function PropertiesPanel({
     <aside className={styles.panel} data-print-hide>
       <div className={styles.panelContent}>
         <div className={styles.panelSection}>
-          <label className={styles.subLabel}>Template</label>
+          <h3 className={styles.sectionTitle}>Template</h3>
           <div className={styles.templateToggleRow}>
             {Object.entries(TEMPLATES).map(([id, t]) => {
               const isSelected = (resume.templateId || 'classic') === id;
@@ -157,7 +157,7 @@ export default function PropertiesPanel({
         <div className={styles.sectionDivider} />
 
         <div className={styles.panelSection}>
-          <label className={styles.subLabel}>Personal Info</label>
+          <h3 className={styles.sectionTitle}>Personal Info</h3>
 
           <div className={styles.field}>
             <label className={styles.subLabel}>Full Name</label>
@@ -290,7 +290,7 @@ export default function PropertiesPanel({
         <div className={styles.sectionDivider} />
 
         <div className={styles.panelSection}>
-          <label className={styles.subLabel}>Tips</label>
+          <h3 className={styles.sectionTitle}>Tips</h3>
           <p className={styles.tipText}>
             Drag blocks from the library into a section. Reorder blocks within a section by dragging
             them. Click the pencil icon on a block to edit its content.

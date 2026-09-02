@@ -415,7 +415,7 @@ export default function Dashboard() {
   };
 
   const deleteJobType = async (id) => {
-    if (!confirm('Delete this job type? It will be removed from all blocks.')) return;
+    if (!confirm('Delete this tag? It will be removed from all blocks.')) return;
 
     try {
       const res = await fetch(`/api/user/jobtypes?id=${id}`, {
@@ -621,19 +621,87 @@ export default function Dashboard() {
     }
   };
 
-  // Helper to get display text from a block (handles both flat and nested content)
+  // Helper to get display text from a block (handles flat, nested, and schema-based content)
   const getBlockDisplayText = (block) => {
-    const schema = BLOCK_SCHEMA[block.type];
-    if (schema?.render) {
-      const rendered = schema.render(block);
-      const meta = [rendered.title, rendered.subtitle, rendered.dates].filter(Boolean).join(' · ');
-      return { meta, body: rendered.body || '' };
+    if (!block) return { meta: '', body: '' };
+    const b = block.content ? { ...block.content, ...block } : block;
+
+    const genericPlaceholders = new Set([
+      'role',
+      'position',
+      'institution',
+      'project name',
+      'professional summary',
+      'untitled',
+      'headline',
+      'skills',
+      'summary',
+      'experience',
+      'education',
+      'projects',
+      'activities',
+      'cca',
+    ]);
+
+    const isGeneric = (val) => !val || genericPlaceholders.has(String(val).trim().toLowerCase());
+
+    const dates = [b.startDate, b.endDate].filter(Boolean).join(' – ');
+    let metaParts = [];
+    let bodyText = '';
+
+    if (b.type === 'experience' || b.type === 'projects' || b.type === 'activities' || b.type === 'cca') {
+      if (b.company && !isGeneric(b.company)) metaParts.push(b.company);
+      if (b.location && !isGeneric(b.location)) metaParts.push(b.location);
+      if (dates) metaParts.push(dates);
+
+      if (b.role && !isGeneric(b.role) && b.role.trim() !== (b.name || '').trim()) {
+        metaParts.unshift(b.role);
+      }
+
+      bodyText = b.description || b.body || '';
+    } else if (b.type === 'education') {
+      if (b.institution && !isGeneric(b.institution)) metaParts.push(b.institution);
+      const degreeStr = [b.degree, b.field].filter(Boolean).join(b.degree && b.field ? ' in ' : '');
+      if (degreeStr && degreeStr.trim() !== (b.name || '').trim()) metaParts.push(degreeStr);
+      if (b.location && !isGeneric(b.location)) metaParts.push(b.location);
+      if (dates) metaParts.push(dates);
+
+      bodyText = [b.gpa, b.description || b.body].filter(Boolean).join(' · ');
+    } else if (b.type === 'skills') {
+      if (b.category && !isGeneric(b.category)) metaParts.push(b.category);
+      if (Array.isArray(b.items) && b.items.length) {
+        bodyText = b.items
+          .map((item) => (item.category ? `${item.category}: ${item.skills}` : item.skills))
+          .filter(Boolean)
+          .join(' • ');
+      } else {
+        bodyText = (b.skills || b.body || '').replace(/\n+/g, ' • ');
+      }
+    } else if (b.type === 'summary') {
+      if (b.headline && !isGeneric(b.headline) && b.headline.trim() !== (b.name || '').trim()) {
+        metaParts.push(b.headline);
+      }
+      bodyText = b.body || b.description || '';
+    } else {
+      const schema = BLOCK_SCHEMA[b.type];
+      if (schema?.render) {
+        const rendered = schema.render(b);
+        if (rendered.subtitle && !isGeneric(rendered.subtitle)) metaParts.push(rendered.subtitle);
+        if (rendered.location && !isGeneric(rendered.location)) metaParts.push(rendered.location);
+        if (rendered.dates) metaParts.push(rendered.dates);
+        bodyText = rendered.body || '';
+      }
     }
-    const content = block.content || block;
-    return {
-      meta: content.headline || content.role || content.company || content.institution || content.category || 'Untitled',
-      body: content.body || content.description || content.skills || '',
-    };
+
+    const cleanBody = (bodyText || '')
+      .replace(/\*\*/g, '')
+      .replace(/^[•▪◦‣∙·●○■□◘\-\*]\s*/gm, '')
+      .replace(/\n+/g, ' ')
+      .trim();
+
+    const meta = metaParts.filter((p) => p && !isGeneric(p)).join(' · ');
+
+    return { meta, body: cleanBody };
   };
 
   // Helper to resolve job type IDs to names
@@ -933,13 +1001,13 @@ export default function Dashboard() {
         </section>
 
         <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>Job Types ({Object.keys(jobTypes).length})</h2>
-          <p className={styles.sectionDesc}>Manage your job types. These are shared across all your blocks.</p>
+          <h2 className={styles.sectionTitle}>Tags ({Object.keys(jobTypes).length})</h2>
+          <p className={styles.sectionDesc}>Manage your tags. These are shared across all your blocks.</p>
           <div className={styles.jobTypesList}>
             {Object.entries(jobTypes).map(([id, name]) => (
               <div key={id} className={styles.jobTypeItem}>
                 <span className={styles.jobTypeName}>{name}</span>
-                <button className={styles.deleteBtn} onClick={() => deleteJobType(id)} title="Delete">
+                <button className={styles.deleteBtn} onClick={() => deleteJobType(id)} title="Delete tag">
                   ×
                 </button>
               </div>
@@ -949,7 +1017,7 @@ export default function Dashboard() {
             <input
               type="text"
               className={styles.addJobTypeInput}
-              placeholder="Add new job type..."
+              placeholder="Add new tag..."
               value={newJobTypeName}
               onChange={(e) => setNewJobTypeName(e.target.value)}
               onKeyDown={(e) => {
@@ -957,7 +1025,7 @@ export default function Dashboard() {
               }}
             />
             <button className={styles.createBtn} onClick={addJobType}>
-              Add
+              Add Tag
             </button>
           </div>
         </section>

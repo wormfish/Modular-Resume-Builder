@@ -71,18 +71,18 @@
 
   /* ── Resume header: name + contact ── */
   [class*='resumeHeader'] {
-    margin-bottom: 12px !important;
+    margin-bottom: 8px !important;
   }
 
   [class*='resumeName'] {
-    font-size: 22px !important;
+    font-size: 18px !important;
     font-weight: 800 !important;
     color: #000 !important;
-    margin-bottom: 3px !important;
+    margin-bottom: 2px !important;
   }
 
   [class*='resumeContact'] {
-    font-size: 11px !important;
+    font-size: 10.5px !important;
     color: #555 !important;
     margin-bottom: 0 !important;
   }
@@ -103,20 +103,21 @@
   [class*='resumeSection'] {
     border: none !important;
     padding: 0 !important;
-    margin-bottom: 16px !important;
+    margin-bottom: 8px !important;
     min-height: auto !important;
   }
 
   [class*='sectionHeader'] {
     display: flex !important;
     align-items: center !important;
-    margin-bottom: 6px !important;
+    margin-bottom: 4px !important;
     border-bottom: 2px solid #000 !important;
-    padding-bottom: 4px !important;
+    padding-bottom: 3px !important;
   }
 
-  /* Section title is an <input> — force explicit print-safe styling */
-  [class*='sectionTitle'] {
+  /* Section title: real semantic heading for 100% vector selectable text & ATS parsing */
+  [class*='sectionTitlePrint'] {
+    display: block !important;
     font-size: 11.5px !important;
     font-weight: 700 !important;
     text-transform: uppercase !important;
@@ -127,15 +128,14 @@
     padding: 0 !important;
     margin: 0 !important;
     width: auto !important;
-    -webkit-appearance: none !important;
-    appearance: none !important;
+    line-height: 1.2 !important;
   }
 
   /* ── Blocks ── */
   [class*='resumeBlock'] {
     border: none !important;
     padding: 0 !important;
-    margin-bottom: 18px !important;
+    margin-bottom: 10px !important;
     cursor: default !important;
     background: transparent !important;
     box-shadow: none !important;
@@ -201,7 +201,7 @@
     text-align: center !important;
   }
 
-  [class*='template-classic'] [class*='sectionTitle'] {
+  [class*='template-classic'] [class*='sectionTitlePrint'] {
     font-family: Georgia, 'Times New Roman', serif !important;
   }
 }
