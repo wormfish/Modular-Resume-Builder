@@ -37,7 +37,8 @@ For "projects":
   "fields": {
     "role": "Role / Title (e.g. Creator & Lead Developer)",
     "company": "Project / Organization Name",
-    "location": "Location or Link (e.g. github.com/... or Remote)",
+    "link": "Project URL or Link (e.g. github.com/... or https://...)",
+    "location": "Location (e.g. Remote or City, State)",
     "startDate": "Start Date",
     "endDate": "End Date",
     "description": "• Built and launched ... achieving 2,000+ active users\\n• Implemented ... cutting query execution time by 60%"

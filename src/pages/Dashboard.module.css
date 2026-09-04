@@ -943,14 +943,14 @@
   margin: 0 0 12px;
 }
 
-.jobTypesList {
+.tagsList {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   margin-bottom: 12px;
 }
 
-.jobTypeItem {
+.tagItem {
   display: flex;
   align-items: center;
   gap: 4px;
@@ -964,7 +964,7 @@
   box-shadow: 2px 2px 0 var(--ink);
 }
 
-.jobTypeName {
+.tagName {
   font-weight: 600;
 }
 
@@ -991,13 +991,13 @@
   color: #fff;
 }
 
-.addJobTypeRow {
+.addTagRow {
   display: flex;
   gap: 10px;
   align-items: flex-start;
 }
 
-.addJobTypeInput {
+.addTagInput {
   flex: 1;
   max-width: 300px;
   padding: 9px 12px;
@@ -1008,7 +1008,7 @@
   margin-top: 0;
 }
 
-.addJobTypeInput:focus {
+.addTagInput:focus {
   outline: none;
   border-color: var(--primary);
   box-shadow: 3px 3px 0 var(--primary);

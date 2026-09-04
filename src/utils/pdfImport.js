@@ -280,6 +280,11 @@ function parseExperienceEntry(entryLines, sectionX0, type = 'experience') {
     description = description ? `${description}\n${paragraph}` : paragraph;
   }
 
+  let link = '';
+  if (type === 'projects' && location && (/^https?:\/\//i.test(location) || /^(www\.)?(github\.com|gitlab\.com|bitbucket\.org)/i.test(location))) {
+    link = location;
+  }
+
   const defaultLabel = type === 'projects' ? 'Project' : (type === 'activities' || type === 'cca') ? 'Activity' : 'Experience';
   return {
     type,
@@ -287,6 +292,7 @@ function parseExperienceEntry(entryLines, sectionX0, type = 'experience') {
     fields: {
       role,
       company,
+      link,
       location,
       startDate,
       endDate,

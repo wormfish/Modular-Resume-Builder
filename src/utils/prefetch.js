@@ -40,7 +40,7 @@ export function getOrFetch(key, url) {
 export function prefetchBuilderData() {
   getOrFetch('resumes', '/api/resumes');
   getOrFetch('blocks', '/api/blocks');
-  getOrFetch('jobtypes', '/api/user/jobtypes');
+  getOrFetch('tags', '/api/user/tags');
 }
 
 // Drop one cached endpoint (e.g., after mutating that resource) or the

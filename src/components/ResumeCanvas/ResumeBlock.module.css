@@ -133,6 +133,34 @@
   font-size: 12px;
 }
 
+.headerLink {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--muted);
+  text-underline-offset: 2px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  transition: color 0.15s, text-decoration-color 0.15s;
+  cursor: pointer;
+}
+
+.headerLink:hover {
+  color: var(--primary);
+  text-decoration-color: var(--primary);
+}
+
+.externalIcon {
+  opacity: 0.55;
+  flex-shrink: 0;
+  transition: opacity 0.15s, transform 0.15s;
+}
+
+.headerLink:hover .externalIcon {
+  opacity: 1;
+  transform: translate(0.5px, -0.5px);
+}
+
 .entryLocation {
   font-weight: 700;
   font-size: 12px;

@@ -16,7 +16,7 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'POST') {
-      const { id, _id, owner, name, content, __v, createdAt, updatedAt, type, jobTypeIds, resumeId, variantOf, ...contentFields } = req.body;
+      const { id, _id, owner, name, content, __v, createdAt, updatedAt, type, tagIds, variantIn, variantOf, ...contentFields } = req.body;
       
       // Check if block exists and verify ownership
       const existingBlock = await Block.findById(id);
@@ -25,11 +25,11 @@ export default async function handler(req, res) {
       }
       
       // Force owner to be the authenticated user's email.
-      // resumeId/variantOf are only touched when provided, so a plain save
+      // variantIn/variantOf are only touched when provided, so a plain save
       // of an existing variant keeps its resume scope.
-      const update = { _id: id, owner: user.email, type, jobTypeIds: jobTypeIds || [], content: contentFields };
+      const update = { _id: id, owner: user.email, type, tagIds: tagIds || [], ...contentFields };
       if (name !== undefined) update.name = name || '';
-      if (resumeId !== undefined) update.resumeId = resumeId || null;
+      if (variantIn !== undefined) update.variantIn = variantIn || null;
       if (variantOf !== undefined) update.variantOf = variantOf || null;
       const block = await Block.findByIdAndUpdate(
         id,

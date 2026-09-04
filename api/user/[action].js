@@ -99,7 +99,7 @@ export default async function handler(req, res) {
     }
   }
 
-  if (action === 'jobtypes') {
+  if (action === 'tags') {
     try {
       const user = requireAuth(req, res);
       if (!user) return;
@@ -112,14 +112,14 @@ export default async function handler(req, res) {
       }
 
       if (req.method === 'GET') {
-        // Return job types as a plain object
-        const jobTypesObj = {};
-        if (dbUser.jobTypes) {
-          for (const [key, value] of dbUser.jobTypes.entries()) {
-            jobTypesObj[key] = value;
+        // Return tags as a plain object
+        const tagsObj = {};
+        if (dbUser.tags) {
+          for (const [key, value] of dbUser.tags.entries()) {
+            tagsObj[key] = value;
           }
         }
-        return res.json(jobTypesObj);
+        return res.json(tagsObj);
       }
 
       if (req.method === 'POST') {
@@ -127,7 +127,7 @@ export default async function handler(req, res) {
         if (!id || !name) {
           return res.status(400).json({ error: 'Missing id or name' });
         }
-        dbUser.jobTypes.set(id, name);
+        dbUser.tags.set(id, name);
         await dbUser.save();
         return res.status(201).json({ id, name });
       }
@@ -137,10 +137,10 @@ export default async function handler(req, res) {
         if (!id || !name) {
           return res.status(400).json({ error: 'Missing id or name' });
         }
-        if (!dbUser.jobTypes.has(id)) {
-          return res.status(404).json({ error: 'Job type not found' });
+        if (!dbUser.tags.has(id)) {
+          return res.status(404).json({ error: 'Tag not found' });
         }
-        dbUser.jobTypes.set(id, name);
+        dbUser.tags.set(id, name);
         await dbUser.save();
         return res.json({ id, name });
       }
@@ -150,14 +150,14 @@ export default async function handler(req, res) {
         if (!id) {
           return res.status(400).json({ error: 'Missing id query parameter' });
         }
-        dbUser.jobTypes.delete(id);
+        dbUser.tags.delete(id);
         await dbUser.save();
         return res.json({ success: true, id });
       }
 
       return res.status(405).json({ error: 'Method not allowed' });
     } catch (err) {
-      console.error('Job types handler error:', err);
+      console.error('Tags handler error:', err);
       return res.status(500).json({ error: 'Internal server error' });
     }
   }

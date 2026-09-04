@@ -12,8 +12,8 @@ dotenv.config({ path: join(__dirname, '.env') });
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/resume-builder';
 const OWNER = 'kit@catship.nya';
 
-// ── Job Types (user-level dictionary) ─────────────────────────────────────────
-const jobTypes = {
+// ── Tags (user-level dictionary) ──────────────────────────────────────────────
+const tags = {
   jt1: 'Software Development',
   jt2: 'Management',
   jt3: 'Technical Skills',
@@ -26,102 +26,88 @@ const jobTypes = {
   jt10: 'Research',
 };
 
-// ── Blocks (now use jobTypeIds referencing the dictionary) ────────────────────
+// ── Blocks (flat: content fields at top level, tagIds referencing the dictionary) ──
 const blocks = [
   {
     _id: 'b1',
     owner: OWNER,
     type: 'summary',
-    jobTypeIds: ['jt1', 'jt2'],
-    content: {
-      headline: 'Senior Software Engineer',
-      body: 'Results-driven engineer with 8+ years of experience building scalable web applications and leading cross-functional teams.',
-    },
+    tagIds: ['jt1', 'jt2'],
+    headline: 'Senior Software Engineer',
+    body: 'Results-driven engineer with 8+ years of experience building scalable web applications and leading cross-functional teams.',
   },
   {
     _id: 'b2',
     owner: OWNER,
     type: 'experience',
-    jobTypeIds: ['jt1'],
-    content: {
-      company: 'TechCorp',
-      role: 'Senior Software Engineer',
-      location: 'San Francisco, CA',
-      startDate: '2020',
-      endDate: 'Present',
-      description: 'Lead backend architecture for a high-traffic SaaS platform. Mentor junior engineers and drive CI/CD best practices.',
-    },
+    tagIds: ['jt1'],
+    company: 'TechCorp',
+    role: 'Senior Software Engineer',
+    location: 'San Francisco, CA',
+    startDate: '2020',
+    endDate: 'Present',
+    description: 'Lead backend architecture for a high-traffic SaaS platform. Mentor junior engineers and drive CI/CD best practices.',
   },
   {
     _id: 'b3',
     owner: OWNER,
     type: 'experience',
-    jobTypeIds: ['jt2'],
-    content: {
-      company: 'StartupXYZ',
-      role: 'Engineering Manager',
-      location: 'Remote',
-      startDate: '2017',
-      endDate: '2020',
-      description: 'Managed a team of 10 engineers across two product squads. Improved delivery predictability by 40%.',
-    },
+    tagIds: ['jt2'],
+    company: 'StartupXYZ',
+    role: 'Engineering Manager',
+    location: 'Remote',
+    startDate: '2017',
+    endDate: '2020',
+    description: 'Managed a team of 10 engineers across two product squads. Improved delivery predictability by 40%.',
   },
   {
     _id: 'b4',
     owner: OWNER,
     type: 'education',
-    jobTypeIds: ['jt1', 'jt6'],
-    content: {
-      institution: 'State University',
-      degree: 'Bachelor of Science',
-      field: 'Computer Science',
-      startDate: '2012',
-      endDate: '2016',
-      gpa: 'GPA: 3.8 / 4.0',
-    },
+    tagIds: ['jt1', 'jt6'],
+    institution: 'State University',
+    degree: 'Bachelor of Science',
+    field: 'Computer Science',
+    startDate: '2012',
+    endDate: '2016',
+    gpa: 'GPA: 3.8 / 4.0',
   },
   {
     _id: 'b5',
     owner: OWNER,
     type: 'skills',
-    jobTypeIds: ['jt3', 'jt1'],
+    tagIds: ['jt3', 'jt1'],
     name: 'Technical Skills',
-    content: {
-      category: 'Technical Skills',
-      skills: 'Languages: JavaScript, TypeScript, Python, SQL\nCloud & Tools: AWS, Docker, Git, CI/CD',
-      items: [
-        { category: 'Languages', skills: 'JavaScript, TypeScript, React, Node.js, Python, SQL' },
-        { category: 'Cloud & Tools', skills: 'AWS, Docker, Git, CI/CD' },
-      ],
-    },
+    category: 'Technical Skills',
+    skills: 'Languages: JavaScript, TypeScript, Python, SQL\nCloud & Tools: AWS, Docker, Git, CI/CD',
+    items: [
+      { category: 'Languages', skills: 'JavaScript, TypeScript, React, Node.js, Python, SQL' },
+      { category: 'Cloud & Tools', skills: 'AWS, Docker, Git, CI/CD' },
+    ],
   },
   {
     _id: 'b6',
     owner: OWNER,
     type: 'projects',
-    jobTypeIds: ['jt1', 'jt3'],
-    content: {
-      role: 'Creator & Maintainer',
-      company: 'Open-Source Markdown Engine',
-      location: 'github.com/example/engine',
-      startDate: '2022',
-      endDate: 'Present',
-      description: 'Built a high-performance streaming markdown parser in TypeScript with 2,000+ GitHub stars.',
-    },
+    tagIds: ['jt1', 'jt3'],
+    role: 'Creator & Maintainer',
+    company: 'Open-Source Markdown Engine',
+    location: 'github.com/example/engine',
+    startDate: '2022',
+    endDate: 'Present',
+    description: 'Built a high-performance streaming markdown parser in TypeScript with 2,000+ GitHub stars.',
   },
   {
     _id: 'b7',
     owner: OWNER,
     type: 'activities',
-    jobTypeIds: ['jt2'],
-    content: {
-      role: 'President',
-      company: 'University Computing Society',
-      location: 'Campus Chapter',
-      startDate: '2014',
-      endDate: '2016',
-      description: 'Organized annual 48-hour national hackathon with 400+ participants and raised $25k in industry sponsorships.',
-    },
+    tagIds: ['jt2'],
+    role: 'President',
+    company: 'University Computing Society',
+    location: 'Campus Chapter',
+    startDate: '2014',
+    endDate: '2016',
+    description: 'Organized annual 48-hour national hackathon with 400+ participants and raised $25k in industry sponsorships.',
   },
 ];
 
@@ -157,15 +143,15 @@ async function seed() {
   await mongoose.connect(MONGODB_URI);
   console.log('Connected.\n');
 
-  // --- User Job Types ---
-  console.log('Seeding job types for user...');
+  // --- User Tags ---
+  console.log('Seeding tags for user...');
   const user = await User.findOne({ email: OWNER });
   if (user) {
-    user.jobTypes = new Map(Object.entries(jobTypes));
+    user.tags = new Map(Object.entries(tags));
     await user.save();
-    console.log(`Updated job types for "${OWNER}": ${Object.keys(jobTypes).length} types`);
+    console.log(`Updated tags for "${OWNER}": ${Object.keys(tags).length} tags`);
   } else {
-    console.log(`User "${OWNER}" not found — skipping job types. Register the account (or run server/seed-demo.js), then re-run seed.`);
+    console.log(`User "${OWNER}" not found — skipping tags. Register the account (or run server/seed-demo.js), then re-run seed.`);
   }
 
   // --- Blocks ---
@@ -178,7 +164,7 @@ async function seed() {
 
   const storedBlocks = await Block.find({ owner: OWNER });
   console.log(`Verified ${storedBlocks.length} block(s) for owner "${OWNER}":`);
-  storedBlocks.forEach((b) => console.log(`  - ${b._id} (${b.type}) jobTypeIds: [${(b.jobTypeIds || []).join(', ')}]`));
+  storedBlocks.forEach((b) => console.log(`  - ${b._id} (${b.type}) tagIds: [${(b.tagIds || []).join(', ')}]`));
 
   // --- Resume ---
   console.log('\nUpserting resume into "resumes" collection...');

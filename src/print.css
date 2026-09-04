@@ -162,6 +162,18 @@
     font-size: 12px !important;
   }
 
+  [class*='entryTitle'] a,
+  [class*='headerLink'] {
+    color: #000 !important;
+    text-decoration: underline !important;
+    text-decoration-color: #000 !important;
+    text-underline-offset: 2px !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    pointer-events: auto !important;
+    cursor: pointer !important;
+  }
+
   [class*='entryLocation'] {
     color: #000 !important;
     font-weight: 700 !important;

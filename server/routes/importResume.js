@@ -10,7 +10,7 @@ Return ONLY valid JSON (no markdown, no commentary) matching:
   "blocks": [
     { "type": "summary", "name": "Summary", "fields": { "headline": "", "body": "" } },
     { "type": "experience", "name": "<Role> — <Company>", "fields": { "role": "", "company": "", "location": "", "startDate": "", "endDate": "", "description": "• bullet\\n• bullet" } },
-    { "type": "projects", "name": "<Role> — <Project/Org>", "fields": { "role": "", "company": "", "location": "", "startDate": "", "endDate": "", "description": "• bullet\\n• bullet" } },
+    { "type": "projects", "name": "<Role> — <Project/Org>", "fields": { "role": "", "company": "", "link": "", "location": "", "startDate": "", "endDate": "", "description": "• bullet\\n• bullet" } },
     { "type": "activities", "name": "<Role> — <Organization/Initiative>", "fields": { "role": "", "company": "", "location": "", "startDate": "", "endDate": "", "description": "• bullet\\n• bullet" } },
     { "type": "education", "name": "<Degree> — <Institution>", "fields": { "institution": "", "degree": "", "field": "", "startDate": "", "endDate": "", "gpa": "" } },
     { "type": "skills", "name": "Skills", "fields": { "items": [ { "category": "Languages", "skills": "Python, TypeScript, SQL" }, { "category": "Frameworks", "skills": "React, Node.js" } ] } }

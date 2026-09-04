@@ -33,12 +33,12 @@ export default function App() {
 
   const [blocks, setBlocks, resetBlocks] = useLocalStorage('resume-builder-blocks', INITIAL_BLOCKS);
   const [resume, setResume, resetResume] = useLocalStorage('resume-builder-canvas', INITIAL_RESUME);
-  // jobTypes is now an object: { jt1: "Software Development", ... }
-  const [jobTypes, setJobTypes] = useState({});
+  // tags is an object: { jt1: "Software Development", ... }
+  const [tags, setTags] = useState({});
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingBlockId, setEditingBlockId] = useState(null);
-  const [tempBlock, setTempBlock] = useState({ type: 'summary', jobTypeIds: [] });
+  const [tempBlock, setTempBlock] = useState({ type: 'summary', tagIds: [] });
   const [isCanvasBlockDragging, setIsCanvasBlockDragging] = useState(false);
 
   const [saveStatus, setSaveStatus] = useState(''); // '' | 'saving' | 'saved' | 'error'
@@ -115,12 +115,12 @@ export default function App() {
     }
   }, [user, navigate]);
 
-  // ---------- Fetch job types from user profile ----------
+  // ---------- Fetch tags from user profile ----------
   useEffect(() => {
     if (!user?.email) return;
-    getOrFetch('jobtypes', '/api/user/jobtypes')
+    getOrFetch('tags', '/api/user/tags')
       .then((data) => {
-        setJobTypes(data);
+        setTags(data);
       })
       .catch((err) => {
         // A 401 here means the stored token has expired or been revoked while
@@ -133,8 +133,8 @@ export default function App() {
           navigate('/login');
           return;
         }
-        console.error('Failed to fetch job types:', err);
-        setJobTypes({});
+        console.error('Failed to fetch tags:', err);
+        setTags({});
       });
   }, [user?.email, navigate]);
 
@@ -265,57 +265,6 @@ export default function App() {
       });
     });
 
-    // Migrate blocks: jobTypes (string array) → jobTypeIds
-    setBlocks((prev) => {
-      if (!prev.some((b) => b.jobTypes && !b.jobTypeIds)) return prev;
-      // Build reverse lookup: name → id
-      const nameToId = {};
-      Object.entries(jobTypes).forEach(([id, name]) => {
-        nameToId[name] = id;
-      });
-      
-      // Track new job types that need to be created
-      const newJobTypes = {};
-      
-      const migrated = prev.map((b) => {
-        if (b.jobTypeIds) return b;
-        if (!b.jobTypes) return { ...b, jobTypeIds: [] };
-        
-        const ids = b.jobTypes.map((name) => {
-          // If we have a matching ID, use it
-          if (nameToId[name]) return nameToId[name];
-          // Otherwise, create a new ID for this job type
-          const newId = `jt-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-          newJobTypes[newId] = name;
-          nameToId[name] = newId; // Cache for subsequent blocks
-          return newId;
-        });
-        
-        const { jobTypes: _, ...rest } = b;
-        return { ...rest, jobTypeIds: ids };
-      });
-      
-      // Persist new job types to the API
-      if (Object.keys(newJobTypes).length > 0) {
-        const email = user?.email || DEFAULT_OWNER;
-        Object.entries(newJobTypes).forEach(([id, name]) => {
-          fetch('/api/user/jobtypes', {
-            method: 'POST',
-            headers: { 
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${localStorage.getItem('auth-token')}`
-            },
-            body: JSON.stringify({ email, id, name }),
-          }).catch((err) => console.error('Failed to create job type:', err));
-        });
-        
-        // Update local jobTypes state
-        setJobTypes((prev) => ({ ...prev, ...newJobTypes }));
-      }
-      
-      return migrated;
-    });
-
     // Migrate resume: old sections array → { sectionOrder, sections: { Title: [ids] } }
     // Also migrate old separate personalInfo localStorage into resume.personalInfo
     setResume((prev) => {
@@ -369,13 +318,13 @@ export default function App() {
 
       return next;
     });
-  }, [jobTypes]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ---------- Block CRUD ----------
 
   const openNewBlockModal = useCallback(() => {
     setEditingBlockId(null);
-    setTempBlock({ type: 'summary', jobTypeIds: [] });
+    setTempBlock({ type: 'summary', tagIds: [] });
     setModalOpen(true);
   }, []);
 
@@ -397,13 +346,13 @@ export default function App() {
     const blockId = editingBlockId || generateId();
     
     // Prepare block data for API (flatten content fields)
-    const { jobTypeIds, type, name, ...contentFields } = tempBlock;
+    const { tagIds, type, name, ...contentFields } = tempBlock;
     const blockData = {
       id: blockId,
       owner,
       type,
       name: name || '',
-      jobTypeIds: jobTypeIds || [],
+      tagIds: tagIds || [],
       ...contentFields,
     };
 
@@ -473,15 +422,15 @@ export default function App() {
     const resumeId =
       resume._id || (resume.id && resume.id !== 'r1' ? resume.id : `r-${Date.now()}`);
 
-    const { jobTypeIds, type, name, ...contentFields } = tempBlock;
+    const { tagIds, type, name, ...contentFields } = tempBlock;
     const blockData = {
       ...contentFields,
       id: variantId,
       owner,
       type,
       name: name || '',
-      jobTypeIds: jobTypeIds || [],
-      resumeId,
+      tagIds: tagIds || [],
+      variantIn: resumeId,
       variantOf: editingBlockId,
     };
 
@@ -500,7 +449,7 @@ export default function App() {
       // Keep the original library block; add the variant alongside it.
       setBlocks((prev) => [
         ...prev,
-        { ...tempBlock, id: variantId, resumeId, variantOf: editingBlockId },
+        { ...tempBlock, id: variantId, variantIn: resumeId, variantOf: editingBlockId },
       ]);
 
       // Stabilize the resume id (matters for brand-new resumes) and swap the
@@ -522,23 +471,23 @@ export default function App() {
   }, [editingBlockId, tempBlock, resume, setBlocks, setResume, closeModal, user?.email]);
 
   // Save the block being edited as a CHILD VARIANT: a copy stored in the
-  // library under the parent block (variantOf set, resumeId null). It shows
+  // library under the parent block (variantOf set, variantIn null). It shows
   // up in the parent's variant dropdown and can be dragged onto any resume.
   const saveBlockAsChildVariant = useCallback(async () => {
     if (!editingBlockId) return;
     const owner = user?.email || DEFAULT_OWNER;
     const variantId = generateId();
 
-    const { jobTypeIds, type, name, ...contentFields } = tempBlock;
+    const { tagIds, type, name, ...contentFields } = tempBlock;
     const blockData = {
       ...contentFields,
       id: variantId,
       owner,
       type,
       name: name || '',
-      jobTypeIds: jobTypeIds || [],
+      tagIds: tagIds || [],
       variantOf: editingBlockId,
-      resumeId: null,
+      variantIn: null,
     };
 
     try {
@@ -555,7 +504,7 @@ export default function App() {
 
       setBlocks((prev) => [
         ...prev,
-        { ...tempBlock, id: variantId, variantOf: editingBlockId, resumeId: null },
+        { ...tempBlock, id: variantId, variantOf: editingBlockId, variantIn: null },
       ]);
       invalidatePrefetch('blocks');
       closeModal();
@@ -576,12 +525,12 @@ export default function App() {
     const newId = generateId();
 
     // Variants copy their resume scope and lineage; library blocks stay global.
-    const resumeId = source.resumeId || null;
-    const variantOf = resumeId ? source.variantOf || source.id : null;
+    const variantIn = source.variantIn || null;
+    const variantOf = variantIn ? source.variantOf || source.id : null;
 
     // Strip ids + server metadata that may ride along on flattened blocks,
     // leaving only the actual content fields.
-    const META_KEYS = new Set(['id', '_id', 'owner', '__v', 'createdAt', 'updatedAt', 'content', 'type', 'jobTypeIds', 'resumeId', 'variantOf']);
+    const META_KEYS = new Set(['id', '_id', 'owner', '__v', 'createdAt', 'updatedAt', 'content', 'type', 'tagIds', 'variantIn', 'variantOf']);
     const contentFields = Object.fromEntries(
       Object.entries(source).filter(([k]) => !META_KEYS.has(k))
     );
@@ -590,8 +539,8 @@ export default function App() {
       id: newId,
       owner,
       type: source.type,
-      jobTypeIds: source.jobTypeIds || [],
-      ...(resumeId ? { resumeId, variantOf } : {}),
+      tagIds: source.tagIds || [],
+      ...(variantIn ? { variantIn, variantOf } : {}),
     };
 
     try {
@@ -606,7 +555,7 @@ export default function App() {
 
       if (!res.ok) throw new Error('Failed to duplicate block');
 
-      const copy = { ...source, id: newId, resumeId, variantOf };
+      const copy = { ...source, id: newId, variantIn, variantOf };
       setBlocks((prev) => [...prev, copy]);
 
       // Canvas duplicate: insert the copy right after the original.
@@ -634,7 +583,7 @@ export default function App() {
   const deleteBlock = useCallback(async (blockId) => {
     // Deleting a parent takes its library child variants with it so none are
     // left orphaned in the database.
-    const children = blocks.filter((b) => b.variantOf === blockId && !b.resumeId);
+    const children = blocks.filter((b) => b.variantOf === blockId && !b.variantIn);
     const message = children.length
       ? `Delete this block and its ${children.length} child variant${children.length === 1 ? '' : 's'}? It will also be removed from any resume using it.`
       : 'Delete this block from the library? It will also be removed from any resume using it.';
@@ -650,7 +599,7 @@ export default function App() {
       if (!res.ok) throw new Error('Failed to delete block');
 
       // Update local state (resume-scoped variants stay on their resume).
-      setBlocks((prev) => prev.filter((b) => b.id !== blockId && !(b.variantOf === blockId && !b.resumeId)));
+      setBlocks((prev) => prev.filter((b) => b.id !== blockId && !(b.variantOf === blockId && !b.variantIn)));
       setResume((prev) => {
         const newSections = { ...prev.sections };
         for (const key of Object.keys(newSections)) {
@@ -665,27 +614,27 @@ export default function App() {
     }
   }, [blocks, setBlocks, setResume]);
 
-  // ---------- Job Types ----------
+  // ---------- Tags ----------
 
-  const addCustomJobType = useCallback((name) => {
+  const addCustomTag = useCallback((name) => {
     const trimmed = name.trim();
     if (!trimmed) return;
     const id = 'jt' + Date.now();
-    setJobTypes((prev) => ({ ...prev, [id]: trimmed }));
+    setTags((prev) => ({ ...prev, [id]: trimmed }));
     setTempBlock((prev) => ({
       ...prev,
-      jobTypeIds: [...(prev.jobTypeIds || []), id],
+      tagIds: [...(prev.tagIds || []), id],
     }));
     // Persist to API
     const email = user?.email || DEFAULT_OWNER;
-    fetch('/api/user/jobtypes', {
+    fetch('/api/user/tags', {
       method: 'POST',
       headers: { 
         'Content-Type': 'application/json',
         ...getAuthHeaders()
       },
       body: JSON.stringify({ email, id, name: trimmed }),
-    }).then(() => invalidatePrefetch('jobtypes'));
+    }).then(() => invalidatePrefetch('tags'));
   }, [user?.email]);
 
   // ---------- Resume Operations ----------
@@ -831,7 +780,7 @@ export default function App() {
 
     // Slim view of the block library for the AI (strip Mongo/internal fields)
     const blockSummaries = blocks.map((b) => {
-      const { id, type, _id, owner: _owner, jobTypeIds, ...fields } = b;
+      const { id, type, _id, owner: _owner, tagIds, ...fields } = b;
       return { id, type, ...fields };
     });
 
@@ -1000,7 +949,7 @@ export default function App() {
       <div className={styles.body}>
         <BlockLibrary
           blocks={blocks}
-          jobTypes={jobTypes}
+          tags={tags}
           onNewBlock={openNewBlockModal}
           onEditBlock={openEditBlockModal}
           onDuplicateBlock={duplicateBlock}
@@ -1082,8 +1031,8 @@ export default function App() {
           tempBlock={tempBlock}
           setTempBlock={setTempBlock}
           editingBlockId={editingBlockId}
-          jobTypes={jobTypes}
-          onAddCustomJobType={addCustomJobType}
+          tags={tags}
+          onAddCustomTag={addCustomTag}
           onSave={saveBlock}
           onSaveVariant={saveBlockAsVariant}
           onSaveChildVariant={saveBlockAsChildVariant}

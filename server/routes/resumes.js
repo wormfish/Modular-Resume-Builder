@@ -58,7 +58,7 @@ router.delete('/', requireAuth, async (req, res) => {
     await Resume.findByIdAndDelete(id);
     // Cascade-delete blocks saved as variants for this resume — they are
     // resume-scoped and meaningless without it.
-    await Block.deleteMany({ owner: req.user.email, resumeId: id });
+    await Block.deleteMany({ owner: req.user.email, variantIn: id });
     res.json({ success: true });
   } catch (err) {
     console.error('Failed to delete resume:', err);

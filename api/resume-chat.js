@@ -29,7 +29,7 @@ function buildResumeContext(resume, blocks) {
     for (const id of ids) {
       const b = blockMap[id];
       if (!b) continue;
-      const { id: _id, _id: _mongo, owner: _owner, jobTypeIds: _jt, type, ...fields } = b;
+      const { id: _id, _id: _mongo, owner: _owner, tagIds: _t, type, ...fields } = b;
       lines.push(`- [${type}] ${JSON.stringify(fields)}`);
     }
     if (ids.length === 0) lines.push('- (empty section)');

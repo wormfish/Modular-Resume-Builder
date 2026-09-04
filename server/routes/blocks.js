@@ -15,10 +15,11 @@ router.get('/', requireAuth, async (req, res) => {
   }
 });
 
-// POST upsert a block (uses _id from body)
+// POST upsert a block (uses _id from body). Content fields are stored flat
+// at the top level of the document.
 router.post('/', requireAuth, async (req, res) => {
   try {
-    const { id, _id, owner, name, content, __v, createdAt, updatedAt, type, jobTypeIds, resumeId, variantOf, ...contentFields } = req.body;
+    const { id, _id, owner, name, content, __v, createdAt, updatedAt, type, tagIds, variantIn, variantOf, ...contentFields } = req.body;
     
     // Check if block exists and verify ownership
     const existingBlock = await Block.findById(id);
@@ -26,11 +27,11 @@ router.post('/', requireAuth, async (req, res) => {
       return res.status(403).json({ error: 'Not authorized to modify this block' });
     }
     
-    // resumeId/variantOf are only touched when provided, so a plain save
+    // variantIn/variantOf are only touched when provided, so a plain save
     // of an existing variant keeps its resume scope.
-    const update = { _id: id, owner: req.user.email, type, jobTypeIds: jobTypeIds || [], content: contentFields };
+    const update = { _id: id, owner: req.user.email, type, tagIds: tagIds || [], ...contentFields };
     if (name !== undefined) update.name = name || '';
-    if (resumeId !== undefined) update.resumeId = resumeId || null;
+    if (variantIn !== undefined) update.variantIn = variantIn || null;
     if (variantOf !== undefined) update.variantOf = variantOf || null;
     const block = await Block.findByIdAndUpdate(
       id,
@@ -51,10 +52,10 @@ router.post('/bulk', requireAuth, async (req, res) => {
     if (!Array.isArray(blocks)) return res.status(400).json({ error: 'Expected array of blocks' });
 
     const ops = blocks.map((b) => {
-      const { id, _id, owner, name, content, __v, createdAt, updatedAt, type, jobTypeIds, resumeId, variantOf, ...contentFields } = b;
-      const update = { _id: id, owner: req.user.email, type, jobTypeIds: jobTypeIds || [], content: contentFields };
+      const { id, _id, owner, name, content, __v, createdAt, updatedAt, type, tagIds, variantIn, variantOf, ...contentFields } = b;
+      const update = { _id: id, owner: req.user.email, type, tagIds: tagIds || [], ...contentFields };
       if (name !== undefined) update.name = name || '';
-      if (resumeId !== undefined) update.resumeId = resumeId || null;
+      if (variantIn !== undefined) update.variantIn = variantIn || null;
       if (variantOf !== undefined) update.variantOf = variantOf || null;
       return {
         updateOne: {
@@ -86,7 +87,7 @@ router.delete('/:id', requireAuth, async (req, res) => {
     await Block.findByIdAndDelete(req.params.id);
     // Cascade-delete child variants stored in the library under this block.
     // Resume-scoped variants belong to their resume and are left alone.
-    await Block.deleteMany({ owner: req.user.email, variantOf: req.params.id, resumeId: null });
+    await Block.deleteMany({ owner: req.user.email, variantOf: req.params.id, variantIn: null });
     res.json({ success: true });
   } catch (err) {
     console.error('Failed to delete block:', err);

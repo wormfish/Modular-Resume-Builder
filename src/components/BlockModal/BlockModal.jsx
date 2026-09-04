@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { BLOCK_SCHEMA } from '../../utils/constants';
+import { formatContactUrl } from '../../utils/personalInfo';
 import { SpeechSession } from '../../utils/speechTranscriber';
 import styles from './BlockModal.module.css';
 
@@ -7,14 +8,14 @@ export default function BlockModal({
   tempBlock,
   setTempBlock,
   editingBlockId,
-  jobTypes, // Now an object: { jt1: "Software Development", ... }
-  onAddCustomJobType,
+  tags, // Now an object: { jt1: "Software Development", ... }
+  onAddCustomTag,
   onSave,
   onSaveVariant,
   onSaveChildVariant,
   onClose,
 }) {
-  const [newJobTypeName, setNewJobTypeName] = useState('');
+  const [newTagName, setNewTagName] = useState('');
   const [draggedSkillIdx, setDraggedSkillIdx] = useState(null);
   const [autoParseOpen, setAutoParseOpen] = useState(false);
   const [autoParseText, setAutoParseText] = useState('');
@@ -26,7 +27,7 @@ export default function BlockModal({
   const speechSessionRef = useRef(null);
 
   const schema = BLOCK_SCHEMA[tempBlock.type];
-  const jobTypeIds = tempBlock.jobTypeIds || [];
+  const tagIds = tempBlock.tagIds || [];
 
   // Cleanup speech session on unmount
   useEffect(() => {
@@ -215,11 +216,11 @@ export default function BlockModal({
     setDraggedSkillIdx(null);
   };
 
-  // Two variant kinds:
-  //  - resume variant: resumeId set — lives only on one resume.
-  //  - child variant: variantOf set, no resumeId — lives in the library
+// Two variant kinds:
+  //  - resume variant: variantIn set — lives only on one resume.
+  //  - child variant: variantOf set, no variantIn — lives in the library
   //    under its parent block's dropdown.
-  const isResumeVariant = !!tempBlock.resumeId;
+  const isResumeVariant = !!tempBlock.variantIn;
   const isChildVariant = !isResumeVariant && !!tempBlock.variantOf;
   const isVariant = isResumeVariant || isChildVariant;
   // Saving as a variant copies the block being edited, so only offer it for
@@ -232,14 +233,14 @@ export default function BlockModal({
     if (nextType === tempBlock.type) return;
     // Reset content fields so the old type's fields don't leak into the new
     // type; identity (id/name), job types and variant markers are kept.
-    const { id, name, jobTypeIds: jtIds, resumeId, variantOf } = tempBlock;
-    const next = { type: nextType, jobTypeIds: jtIds || [] };
+    const { id, name, tagIds: tIds, variantIn, variantOf } = tempBlock;
+    const next = { type: nextType, tagIds: tIds || [] };
     if (nextType === 'skills') {
       next.items = [{ category: '', skills: '' }];
     }
     if (id !== undefined) next.id = id;
     if (name !== undefined) next.name = name;
-    if (resumeId !== undefined) next.resumeId = resumeId;
+    if (variantIn !== undefined) next.variantIn = variantIn;
     if (variantOf !== undefined) next.variantOf = variantOf;
     setTempBlock(next);
   };
@@ -248,21 +249,21 @@ export default function BlockModal({
     setTempBlock((prev) => ({ ...prev, [name]: value }));
   };
 
-  const toggleJobType = (jtId) => {
+  const toggleTag = (tagId) => {
     setTempBlock((prev) => {
-      const ids = prev.jobTypeIds || [];
-      const has = ids.includes(jtId);
+      const ids = prev.tagIds || [];
+      const has = ids.includes(tagId);
       return {
         ...prev,
-        jobTypeIds: has ? ids.filter((id) => id !== jtId) : [...ids, jtId],
+        tagIds: has ? ids.filter((id) => id !== tagId) : [...ids, tagId],
       };
     });
   };
 
-  const handleAddCustomJobType = () => {
-    if (!newJobTypeName.trim()) return;
-    onAddCustomJobType(newJobTypeName);
-    setNewJobTypeName('');
+  const handleAddCustomTag = () => {
+    if (!newTagName.trim()) return;
+    onAddCustomTag(newTagName);
+    setNewTagName('');
   };
 
   return (
@@ -388,7 +389,20 @@ export default function BlockModal({
           ) : (
             schema.fields.map((field) => (
               <div key={field.name} className={styles.field}>
-                <label>{field.label}</label>
+                <div className={styles.fieldLabelRow}>
+                  <label>{field.label}</label>
+                  {field.name === 'link' && tempBlock.link && (
+                    <a
+                      href={formatContactUrl(tempBlock.link)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={styles.linkPreview}
+                      title="Test link in new tab"
+                    >
+                      Test Link ↗
+                    </a>
+                  )}
+                </div>
                 {field.type === 'textarea' ? (
                   <textarea
                     value={tempBlock[field.name] || ''}
@@ -397,9 +411,15 @@ export default function BlockModal({
                 ) : (
                   <input
                     type="text"
+                    placeholder={field.placeholder || (field.name === 'link' ? 'e.g. https://github.com/username/project' : '')}
                     value={tempBlock[field.name] || ''}
                     onChange={(e) => handleFieldChange(field.name, e.target.value)}
                   />
+                )}
+                {field.name === 'link' && (
+                  <span className={styles.nameHint}>
+                    Makes the project header a clickable hyperlink on the canvas and exported PDF.
+                  </span>
                 )}
               </div>
             ))
@@ -408,11 +428,11 @@ export default function BlockModal({
           <div className={styles.field}>
             <label>Tags</label>
             <div className={styles.jobTypeSelect}>
-              {Object.entries(jobTypes).map(([id, name]) => (
+              {Object.entries(tags).map(([id, name]) => (
                 <span
                   key={id}
-                  className={`${styles.tag} ${jobTypeIds.includes(id) ? styles.active : ''}`}
-                  onClick={() => toggleJobType(id)}
+                  className={`${styles.tag} ${tagIds.includes(id) ? styles.active : ''}`}
+                  onClick={() => toggleTag(id)}
                 >
                   {name}
                 </span>
@@ -424,16 +444,16 @@ export default function BlockModal({
             <input
               type="text"
               placeholder="Add custom tag..."
-              value={newJobTypeName}
-              onChange={(e) => setNewJobTypeName(e.target.value)}
+              value={newTagName}
+              onChange={(e) => setNewTagName(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
-                  handleAddCustomJobType();
+                  handleAddCustomTag();
                   e.preventDefault();
                 }
               }}
             />
-            <button className={styles.addBtn} onClick={handleAddCustomJobType}>
+            <button className={styles.addBtn} onClick={handleAddCustomTag}>
               Add Tag
             </button>
           </div>

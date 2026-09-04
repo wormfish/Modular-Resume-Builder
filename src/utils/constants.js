@@ -45,18 +45,38 @@ export const BLOCK_SCHEMA = {
     fields: [
       { name: 'role', label: 'Role / Title', type: 'text' },
       { name: 'company', label: 'Project / Organization', type: 'text' },
-      { name: 'location', label: 'Location / Link', type: 'text' },
+      { name: 'link', label: 'Project Link / URL', type: 'text' },
+      { name: 'location', label: 'Location', type: 'text' },
       { name: 'startDate', label: 'Start Date', type: 'text' },
       { name: 'endDate', label: 'End Date', type: 'text' },
       { name: 'description', label: 'Description', type: 'textarea' },
     ],
-    render: (b) => ({
-      title: b.role || 'Project Name',
-      subtitle: b.company || '',
-      location: b.location || '',
-      dates: `${b.startDate || ''}${b.startDate && b.endDate ? ' – ' : ''}${b.endDate || ''}`,
-      body: b.description || '',
-    }),
+    render: (b) => {
+      let rawTitle = b.role || '';
+      let extractedLink = '';
+      const mdMatch = typeof rawTitle === 'string' ? rawTitle.match(/^\[(.*?)\]\((.*?)\)$/) : null;
+      if (mdMatch) {
+        rawTitle = mdMatch[1];
+        extractedLink = mdMatch[2];
+      }
+
+      const explicitLink = (b.link || b.url || b.headerUrl || extractedLink || '').trim();
+      const isLocationUrl = b.location && (
+        /^https?:\/\//i.test(b.location.trim()) ||
+        /^(www\.)?(github\.com|linkedin\.com|gitlab\.com|bitbucket\.org)/i.test(b.location.trim())
+      );
+
+      const effectiveLink = explicitLink || (isLocationUrl ? b.location.trim() : '');
+
+      return {
+        title: rawTitle || 'Project Name',
+        subtitle: b.company || '',
+        location: b.location || '',
+        link: effectiveLink,
+        dates: `${b.startDate || ''}${b.startDate && b.endDate ? ' – ' : ''}${b.endDate || ''}`,
+        body: b.description || '',
+      };
+    },
   },
   activities: {
     label: 'Activities',
@@ -170,14 +190,14 @@ export const TEMPLATES = {
   },
 };
 
-// Blocks are flat JSON objects — owner + id + type + jobTypeIds + content fields at top level
-// jobTypeIds reference the user's jobTypes dictionary
+// Blocks are flat JSON objects — owner + id + type + tagIds + content fields at top level
+// tagIds reference the user's tags dictionary
 export const INITIAL_BLOCKS = [
   {
     id: 'b1',
     owner: DEFAULT_OWNER,
     type: 'summary',
-    jobTypeIds: ['jt1', 'jt2'],
+    tagIds: ['jt1', 'jt2'],
     headline: 'Senior Software Engineer',
     body: 'Results-driven engineer with 8+ years of experience building scalable web applications and leading cross-functional teams.',
   },
@@ -185,7 +205,7 @@ export const INITIAL_BLOCKS = [
     id: 'b2',
     owner: DEFAULT_OWNER,
     type: 'experience',
-    jobTypeIds: ['jt1'],
+    tagIds: ['jt1'],
     company: 'TechCorp',
     role: 'Senior Software Engineer',
     location: 'San Francisco, CA',
@@ -197,7 +217,7 @@ export const INITIAL_BLOCKS = [
     id: 'b3',
     owner: DEFAULT_OWNER,
     type: 'experience',
-    jobTypeIds: ['jt2'],
+    tagIds: ['jt2'],
     company: 'StartupXYZ',
     role: 'Engineering Manager',
     location: 'Remote',
@@ -209,7 +229,7 @@ export const INITIAL_BLOCKS = [
     id: 'b4',
     owner: DEFAULT_OWNER,
     type: 'education',
-    jobTypeIds: ['jt1', 'jt6'],
+    tagIds: ['jt1', 'jt6'],
     institution: 'State University',
     degree: 'Bachelor of Science',
     field: 'Computer Science',
@@ -221,7 +241,7 @@ export const INITIAL_BLOCKS = [
     id: 'b5',
     owner: DEFAULT_OWNER,
     type: 'skills',
-    jobTypeIds: ['jt3', 'jt1'],
+    tagIds: ['jt3', 'jt1'],
     name: 'Technical Skills',
     items: [
       { category: 'Languages', skills: 'JavaScript, TypeScript, React, Node.js, Python, SQL' },
@@ -232,10 +252,11 @@ export const INITIAL_BLOCKS = [
     id: 'b6',
     owner: DEFAULT_OWNER,
     type: 'projects',
-    jobTypeIds: ['jt1', 'jt3'],
+    tagIds: ['jt1', 'jt3'],
     role: 'Creator & Maintainer',
     company: 'Open-Source Markdown Engine',
-    location: 'github.com/example/engine',
+    link: 'https://github.com/example/engine',
+    location: '',
     startDate: '2022',
     endDate: 'Present',
     description: 'Built a high-performance streaming markdown parser in TypeScript with 2,000+ GitHub stars.',
@@ -244,7 +265,7 @@ export const INITIAL_BLOCKS = [
     id: 'b7',
     owner: DEFAULT_OWNER,
     type: 'activities',
-    jobTypeIds: ['jt2'],
+    tagIds: ['jt2'],
     role: 'President',
     company: 'University Computing Society',
     location: 'Campus Chapter',

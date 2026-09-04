@@ -21,10 +21,10 @@ export default async function handler(req, res) {
       }
 
       const ops = blocks.map((b) => {
-        const { id, _id, owner, name, content, __v, createdAt, updatedAt, type, jobTypeIds, resumeId, variantOf, ...contentFields } = b;
-        const update = { _id: id, owner: user.email, type, jobTypeIds: jobTypeIds || [], content: contentFields };
+        const { id, _id, owner, name, content, __v, createdAt, updatedAt, type, tagIds, variantIn, variantOf, ...contentFields } = b;
+        const update = { _id: id, owner: user.email, type, tagIds: tagIds || [], ...contentFields };
         if (name !== undefined) update.name = name || '';
-        if (resumeId !== undefined) update.resumeId = resumeId || null;
+        if (variantIn !== undefined) update.variantIn = variantIn || null;
         if (variantOf !== undefined) update.variantOf = variantOf || null;
         return {
           updateOne: {
@@ -57,7 +57,7 @@ export default async function handler(req, res) {
     await Block.findByIdAndDelete(blockId);
     // Cascade-delete child variants stored in the library under this block.
     // Resume-scoped variants belong to their resume and are left alone.
-    await Block.deleteMany({ owner: user.email, variantOf: blockId, resumeId: null });
+    await Block.deleteMany({ owner: user.email, variantOf: blockId, variantIn: null });
     return res.json({ success: true });
   } catch (err) {
     console.error('Block handler error:', err);

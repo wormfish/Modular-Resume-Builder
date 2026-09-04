@@ -3,18 +3,18 @@ import { BLOCK_SCHEMA, SECTION_TYPES } from '../../utils/constants';
 import { DRAG_KEYS, DRAG_SOURCE } from '../../utils/dragKeys';
 import styles from './BlockLibrary.module.css';
 
-export default function BlockLibrary({ blocks, jobTypes, onNewBlock, onEditBlock, onDuplicateBlock, onDeleteBlock, onRemoveBlockFromResume = () => {}, isCanvasBlockDragging = false, onCanvasDragEnd }) {
-  // jobTypes is now an object: { jt1: "Software Development", ... }
+export default function BlockLibrary({ blocks, tags, onNewBlock, onEditBlock, onDuplicateBlock, onDeleteBlock, onRemoveBlockFromResume = () => {}, isCanvasBlockDragging = false, onCanvasDragEnd }) {
+  // tags is now an object: { jt1: "Software Development", ... }
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedSection, setSelectedSection] = useState('all');
-  const [jobTypeModes, setJobTypeModes] = useState({}); // { jt1: 'include', jt2: 'require', ... }
+  const [tagModes, setTagModes] = useState({}); // { jt1: 'include', jt2: 'require', ... }
   // Variant dropdown: which parent card is open, and which variant each
   // parent card currently shows/drags (null = the parent itself).
   const [openDropdownId, setOpenDropdownId] = useState(null);
   const [pickedVariants, setPickedVariants] = useState({});
   const dragOver = isCanvasBlockDragging;
 
-  const jobTypeEntries = Object.entries(jobTypes); // [[id, name], ...]
+  const tagEntries = Object.entries(tags); // [[id, name], ...]
 
   const handleDropZoneDragOver = useCallback((e) => {
     // Allow drop from canvas blocks
@@ -40,13 +40,13 @@ export default function BlockLibrary({ blocks, jobTypes, onNewBlock, onEditBlock
   const handleDropZoneDragLeave = useCallback(() => {
   }, []);
 
-  const includedJobTypeIds = useMemo(
-    () => jobTypeEntries.filter(([id]) => jobTypeModes[id] === 'include').map(([id]) => id),
-    [jobTypeEntries, jobTypeModes],
+  const includedTagIds = useMemo(
+    () => tagEntries.filter(([id]) => tagModes[id] === 'include').map(([id]) => id),
+    [tagEntries, tagModes],
   );
-  const requiredJobTypeIds = useMemo(
-    () => jobTypeEntries.filter(([id]) => jobTypeModes[id] === 'require').map(([id]) => id),
-    [jobTypeEntries, jobTypeModes],
+  const requiredTagIds = useMemo(
+    () => tagEntries.filter(([id]) => tagModes[id] === 'require').map(([id]) => id),
+    [tagEntries, tagModes],
   );
 
   const filtered = useMemo(() => {
@@ -54,19 +54,19 @@ export default function BlockLibrary({ blocks, jobTypes, onNewBlock, onEditBlock
       // Resume-scoped variants live only on their resume's canvas, and child
       // variants live under their parent's dropdown — neither shows as a
       // standalone library card.
-      if (b.resumeId || b.variantOf) return false;
-      const blockJobTypeIds = b.jobTypeIds || [];
+      if (b.variantIn || b.variantOf) return false;
+      const blockTagIds = b.tagIds || [];
       const matchesSearch =
         !searchQuery ||
         JSON.stringify(b).toLowerCase().includes(searchQuery.toLowerCase());
       const matchesSection = selectedSection === 'all' || b.type === selectedSection;
-      const matchesRequired = requiredJobTypeIds.every((jtId) => blockJobTypeIds.includes(jtId));
+      const matchesRequired = requiredTagIds.every((tagId) => blockTagIds.includes(tagId));
       const matchesIncluded =
-        includedJobTypeIds.length === 0 ||
-        includedJobTypeIds.some((jtId) => blockJobTypeIds.includes(jtId));
+        includedTagIds.length === 0 ||
+        includedTagIds.some((tagId) => blockTagIds.includes(tagId));
       return matchesSearch && matchesSection && matchesRequired && matchesIncluded;
     });
-  }, [blocks, searchQuery, selectedSection, includedJobTypeIds, requiredJobTypeIds]);
+  }, [blocks, searchQuery, selectedSection, includedTagIds, requiredTagIds]);
 
   const CYCLE = { off: 'include', include: 'require', require: 'off' };
 
@@ -74,7 +74,7 @@ export default function BlockLibrary({ blocks, jobTypes, onNewBlock, onEditBlock
   const childrenByParent = useMemo(() => {
     const map = {};
     for (const b of blocks) {
-      if (b.variantOf && !b.resumeId) {
+      if (b.variantOf && !b.variantIn) {
         (map[b.variantOf] ||= []).push(b);
       }
     }
@@ -99,15 +99,15 @@ export default function BlockLibrary({ blocks, jobTypes, onNewBlock, onEditBlock
     setOpenDropdownId(null);
   };
 
-  const cycleJobType = (jtId) => {
-    setJobTypeModes((prev) => {
-      const current = prev[jtId] || 'off';
+  const cycleTag = (tagId) => {
+    setTagModes((prev) => {
+      const current = prev[tagId] || 'off';
       const next = CYCLE[current];
-      return { ...prev, [jtId]: next };
+      return { ...prev, [tagId]: next };
     });
   };
 
-  const clearFilters = () => setJobTypeModes({});
+  const clearFilters = () => setTagModes({});
 
   const handleDragStart = (e, blockId) => {
     e.dataTransfer.setData(DRAG_KEYS.BLOCK_ID, blockId);
@@ -172,14 +172,14 @@ export default function BlockLibrary({ blocks, jobTypes, onNewBlock, onEditBlock
             >
               All
             </span>
-            {jobTypeEntries.map(([id, name]) => {
-              const mode = jobTypeModes[id] || 'off';
-              const pillClass = mode === 'require' ? styles.required : mode === 'include' ? styles.active : '';
+{tagEntries.map(([id, name]) => {
+              const mode = tagModes[id] || 'off';
+              const pillClass = mode === 'include' ? styles.tagPillActive : mode === 'require' ? styles.tagPillRequired : '';
               return (
                 <span
                   key={id}
                   className={`${styles.tag} ${pillClass}`}
-                  onClick={() => cycleJobType(id)}
+                  onClick={() => cycleTag(id)}
                 >
                   {name}
                 </span>
@@ -208,7 +208,7 @@ export default function BlockLibrary({ blocks, jobTypes, onNewBlock, onEditBlock
               (pickedId && blocks.find((b) => b.id === pickedId)) || block;
             const activeSchema = BLOCK_SCHEMA[active.type] || schema;
             const rendered = activeSchema.render(active);
-            const blockJobTypeIds = active.jobTypeIds || [];
+            const blockTagIds = active.tagIds || [];
             const isShowingVariant = active.id !== block.id;
             return (
               <div
@@ -273,8 +273,8 @@ export default function BlockLibrary({ blocks, jobTypes, onNewBlock, onEditBlock
                 )}
                 <div className={styles.preview}>{rendered.body || 'No additional details.'}</div>
                 <div className={styles.tags}>
-                  {blockJobTypeIds.map((jtId) => (
-                    <span key={jtId} className={styles.tag}>{jobTypes[jtId] || jtId}</span>
+                  {blockTagIds.map((tagId) => (
+                    <span key={tagId} className={styles.tag}>{tags[tagId] || tagId}</span>
                   ))}
                 </div>
                 <div className={styles.cardFooter} onClick={(e) => e.stopPropagation()}>

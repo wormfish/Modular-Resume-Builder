@@ -50,7 +50,7 @@ export default async function handler(req, res) {
       await Resume.findByIdAndDelete(id);
       // Cascade-delete blocks saved as variants for this resume — they are
       // resume-scoped and meaningless without it.
-      await Block.deleteMany({ owner: user.email, resumeId: id });
+      await Block.deleteMany({ owner: user.email, variantIn: id });
       return res.json({ success: true });
     }
 

@@ -86,7 +86,7 @@ export default function Dashboard() {
 
   const [resumes, setResumes] = useState([]);
   const [blocks, setBlocks] = useState([]);
-  const [jobTypes, setJobTypes] = useState({}); // { jt1: "Software Development", ... }
+  const [tags, setTags] = useState({}); // { jt1: "Software Development", ... }
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -169,12 +169,12 @@ export default function Dashboard() {
   // Block modal state
   const [blockModalOpen, setBlockModalOpen] = useState(false);
   const [editingBlockId, setEditingBlockId] = useState(null);
-  const [tempBlock, setTempBlock] = useState({ type: 'summary', jobTypeIds: [] });
+  const [tempBlock, setTempBlock] = useState({ type: 'summary', tagIds: [] });
   // Variants popup: the parent block whose child variants are being shown
   const [variantsModalBlock, setVariantsModalBlock] = useState(null);
 
-  // Job type management state
-  const [newJobTypeName, setNewJobTypeName] = useState('');
+  // Tag management state
+  const [newTagName, setNewTagName] = useState('');
 
   // Helper to get auth headers
   const getAuthHeaders = () => ({
@@ -189,15 +189,15 @@ export default function Dashboard() {
     try {
       // Shared with the builder/hover prefetch — returning from the builder
       // usually resolves instantly from the in-memory cache.
-      const [resumesData, blocksData, jobTypesData] = await Promise.all([
+      const [resumesData, blocksData, tagsData] = await Promise.all([
         getOrFetch('resumes', '/api/resumes'),
         getOrFetch('blocks', '/api/blocks'),
-        getOrFetch('jobtypes', '/api/user/jobtypes'),
+        getOrFetch('tags', '/api/user/tags'),
       ]);
 
       setResumes(resumesData);
       setBlocks(blocksData);
-      setJobTypes(jobTypesData);
+      setTags(tagsData);
     } catch (err) {
       setError(err.message || 'Failed to load data');
     } finally {
@@ -221,7 +221,7 @@ export default function Dashboard() {
 
   const openNewBlockModal = () => {
     setEditingBlockId(null);
-    setTempBlock({ type: 'summary', jobTypeIds: [] });
+    setTempBlock({ type: 'summary', tagIds: [] });
     setBlockModalOpen(true);
   };
 
@@ -229,7 +229,7 @@ export default function Dashboard() {
     setEditingBlockId(block._id || block.id);
     // Flatten the content fields to top level for the modal
     const { content, ...rest } = block;
-    setTempBlock({ ...rest, ...(content || {}), jobTypeIds: rest.jobTypeIds || rest.jobTypes || [] });
+    setTempBlock({ ...rest, ...(content || {}), tagIds: rest.tagIds || rest.jobTypeIds || [] });
     setBlockModalOpen(true);
   };
 
@@ -283,9 +283,9 @@ export default function Dashboard() {
       owner,
       type: block.type,
       name: block.name || '',
-      jobTypeIds: block.jobTypeIds || [],
-      ...(block.resumeId
-        ? { resumeId: block.resumeId, variantOf: block.variantOf || block._id }
+      tagIds: block.tagIds || [],
+      ...(block.variantIn
+        ? { variantIn: block.variantIn, variantOf: block.variantOf || block._id }
         : {}),
       ...(block.content || {}),
     };
@@ -361,9 +361,9 @@ export default function Dashboard() {
       owner,
       type: tempBlock.type,
       name: tempBlock.name || '',
-      jobTypeIds: tempBlock.jobTypeIds || [],
+      tagIds: tempBlock.tagIds || [],
       variantOf: editingBlockId,
-      resumeId: null,
+      variantIn: null,
     };
 
     try {
@@ -388,15 +388,15 @@ export default function Dashboard() {
     }
   };
 
-  // ---------- Job Type Management ----------
+  // ---------- Tag Management ----------
 
-  const addJobType = async () => {
-    const name = newJobTypeName.trim();
+  const addTag = async () => {
+    const name = newTagName.trim();
     if (!name) return;
 
     const id = 'jt' + Date.now();
     try {
-      const res = await fetch('/api/user/jobtypes', {
+      const res = await fetch('/api/user/tags', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -405,28 +405,28 @@ export default function Dashboard() {
         body: JSON.stringify({ id, name }),
       });
 
-      if (!res.ok) throw new Error('Failed to add job type');
-      setJobTypes((prev) => ({ ...prev, [id]: name }));
-      setNewJobTypeName('');
-      invalidatePrefetch('jobtypes');
+      if (!res.ok) throw new Error('Failed to add tag');
+      setTags((prev) => ({ ...prev, [id]: name }));
+      setNewTagName('');
+      invalidatePrefetch('tags');
     } catch (err) {
-      setError('Failed to add job type');
+      setError('Failed to add tag');
     }
   };
 
-  const deleteJobType = async (id) => {
+  const deleteTag = async (id) => {
     if (!confirm('Delete this tag? It will be removed from all blocks.')) return;
 
     try {
-      const res = await fetch(`/api/user/jobtypes?id=${id}`, {
+      const res = await fetch(`/api/user/tags?id=${id}`, {
         method: 'DELETE',
         headers: getAuthHeaders(),
       });
 
-      if (!res.ok) throw new Error('Failed to delete job type');
+      if (!res.ok) throw new Error('Failed to delete tag');
 
       // Remove from local state
-      setJobTypes((prev) => {
+      setTags((prev) => {
         const next = { ...prev };
         delete next[id];
         return next;
@@ -435,14 +435,14 @@ export default function Dashboard() {
       // Remove from all blocks (local state)
       const updatedBlocks = blocks.map((b) => ({
         ...b,
-        jobTypeIds: (b.jobTypeIds || []).filter((jtId) => jtId !== id),
+        tagIds: (b.tagIds || []).filter((tagId) => tagId !== id),
       }));
       setBlocks(updatedBlocks);
 
       // Persist block changes to MongoDB
       const authToken = localStorage.getItem('auth-token');
       for (const block of updatedBlocks) {
-        const { jobTypeIds, type, ...contentFields } = block;
+        const { tagIds, type, ...contentFields } = block;
         const blockId = block._id || block.id;
         await fetch('/api/blocks', {
           method: 'POST',
@@ -454,15 +454,15 @@ export default function Dashboard() {
             id: blockId,
             owner: user.email,
             type,
-            jobTypeIds: jobTypeIds || [],
+            tagIds: tagIds || [],
             ...contentFields,
           }),
         });
       }
       invalidatePrefetch('blocks');
-      invalidatePrefetch('jobtypes');
+      invalidatePrefetch('tags');
     } catch (err) {
-      setError('Failed to delete job type');
+      setError('Failed to delete tag');
     }
   };
 
@@ -507,7 +507,7 @@ export default function Dashboard() {
         owner,
         type,
         name: name || '',
-        jobTypeIds: [],
+        tagIds: [],
         ...(fields || {}),
       }));
 
@@ -704,9 +704,9 @@ export default function Dashboard() {
     return { meta, body: cleanBody };
   };
 
-  // Helper to resolve job type IDs to names
-  const resolveJobTypeNames = (jobTypeIds) => {
-    return (jobTypeIds || []).map((id) => jobTypes[id] || id).filter(Boolean);
+  // Helper to resolve tag IDs to names
+  const resolveTagNames = (tagIds) => {
+    return (tagIds || []).map((id) => tags[id] || id).filter(Boolean);
   };
 
   // Section type filter for library blocks ('all' | 'summary' | 'experience' | 'projects' | 'activities' | 'education' | 'skills')
@@ -715,7 +715,7 @@ export default function Dashboard() {
 
   // Resume-scoped variants live only on their resume, and child variants
   // live under their parent's Variants popup — neither shows as a card.
-  const libraryBlocks = blocks.filter((b) => !b.resumeId && !b.variantOf);
+  const libraryBlocks = blocks.filter((b) => !b.variantIn && !b.variantOf);
 
   const filteredLibraryBlocks = libraryBlocks.filter((b) => {
     const matchesType =
@@ -729,14 +729,14 @@ export default function Dashboard() {
 
     const query = blockSearchQuery.toLowerCase().trim();
     const blockContentStr = JSON.stringify(b).toLowerCase();
-    const jobNames = resolveJobTypeNames(b.jobTypeIds || b.jobTypes).join(' ').toLowerCase();
+    const tagNames = resolveTagNames(b.tagIds || b.jobTypeIds).join(' ').toLowerCase();
 
-    return blockContentStr.includes(query) || jobNames.includes(query);
+    return blockContentStr.includes(query) || tagNames.includes(query);
   });
 
   // Child variants grouped by parent id, for the Variants popup.
   const childrenOf = (block) =>
-    blocks.filter((b) => b.variantOf === (block._id || block.id) && !b.resumeId);
+    blocks.filter((b) => b.variantOf === (block._id || block.id) && !b.variantIn);
 
   return (
     <div className={styles.container}>
@@ -955,7 +955,7 @@ export default function Dashboard() {
                       )}
                     </div>
                     <p className={styles.cardTags}>
-                      {resolveJobTypeNames(block.jobTypeIds || block.jobTypes).map((name) => (
+                      {resolveTagNames(block.tagIds || block.jobTypeIds).map((name) => (
                         <span key={name} className={styles.tag}>{name}</span>
                       ))}
                     </p>
@@ -1001,30 +1001,30 @@ export default function Dashboard() {
         </section>
 
         <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>Tags ({Object.keys(jobTypes).length})</h2>
+          <h2 className={styles.sectionTitle}>Tags ({Object.keys(tags).length})</h2>
           <p className={styles.sectionDesc}>Manage your tags. These are shared across all your blocks.</p>
-          <div className={styles.jobTypesList}>
-            {Object.entries(jobTypes).map(([id, name]) => (
-              <div key={id} className={styles.jobTypeItem}>
-                <span className={styles.jobTypeName}>{name}</span>
-                <button className={styles.deleteBtn} onClick={() => deleteJobType(id)} title="Delete tag">
+          <div className={styles.tagsList}>
+            {Object.entries(tags).map(([id, name]) => (
+              <div key={id} className={styles.tagItem}>
+                <span className={styles.tagName}>{name}</span>
+                <button className={styles.deleteBtn} onClick={() => deleteTag(id)} title="Delete tag">
                   ×
                 </button>
               </div>
             ))}
           </div>
-          <div className={styles.addJobTypeRow}>
+          <div className={styles.addTagRow}>
             <input
               type="text"
-              className={styles.addJobTypeInput}
+              className={styles.addTagInput}
               placeholder="Add new tag..."
-              value={newJobTypeName}
-              onChange={(e) => setNewJobTypeName(e.target.value)}
+              value={newTagName}
+              onChange={(e) => setNewTagName(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') addJobType();
+                if (e.key === 'Enter') addTag();
               }}
             />
-            <button className={styles.createBtn} onClick={addJobType}>
+            <button className={styles.createBtn} onClick={addTag}>
               Add Tag
             </button>
           </div>
@@ -1036,16 +1036,16 @@ export default function Dashboard() {
           tempBlock={tempBlock}
           setTempBlock={setTempBlock}
           editingBlockId={editingBlockId}
-          jobTypes={jobTypes}
-          onAddCustomJobType={(name) => {
+          tags={tags}
+          onAddCustomTag={(name) => {
             const id = 'jt' + Date.now();
-            setJobTypes((prev) => ({ ...prev, [id]: name }));
+            setTags((prev) => ({ ...prev, [id]: name }));
             setTempBlock((prev) => ({
               ...prev,
-              jobTypeIds: [...(prev.jobTypeIds || []), id],
+              tagIds: [...(prev.tagIds || []), id],
             }));
             // Also persist to API
-            fetch('/api/user/jobtypes', {
+            fetch('/api/user/tags', {
               method: 'POST',
               headers: { 
                 'Content-Type': 'application/json',
@@ -1053,7 +1053,7 @@ export default function Dashboard() {
               },
               body: JSON.stringify({ id, name }),
             });
-            invalidatePrefetch('jobtypes');
+            invalidatePrefetch('tags');
           }}
           onSave={saveBlock}
           onSaveChildVariant={saveBlockAsChildVariant}

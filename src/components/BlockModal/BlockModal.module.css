@@ -77,6 +77,27 @@
   margin-bottom: 6px;
 }
 
+.fieldLabelRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 3px;
+}
+
+.linkPreview {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+
+.linkPreview:hover {
+  color: var(--primary-deep);
+}
+
 .jobTypeSelect {
   display: flex;
   flex-wrap: wrap;

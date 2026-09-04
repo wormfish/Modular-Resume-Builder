@@ -7,7 +7,7 @@ const API = process.env.API_URL || 'http://localhost:3001';
 const EMAIL = 'demo@example.com';
 const PASSWORD = 'demopass123';
 
-const jobTypes = {
+const tags = {
   jt1: 'Software Development',
   jt2: 'Management',
   jt3: 'Technical Skills',
@@ -28,21 +28,21 @@ const blocks = [
   {
     id: 'demo-b1',
     type: 'summary',
-    jobTypeIds: ['jt1'],
+    tagIds: ['jt1'],
     headline: 'Senior Full-Stack Engineer',
     body: 'Full-stack engineer with 9 years of experience shipping production web applications in React, TypeScript, and Node.js. Comfortable owning features end to end — from PostgreSQL schema design and REST APIs to accessible frontends and CI/CD pipelines on AWS.',
   },
   {
     id: 'demo-b2',
     type: 'summary',
-    jobTypeIds: ['jt2'],
+    tagIds: ['jt2'],
     headline: 'Engineering Team Lead',
     body: 'Hands-on engineering lead who has managed, mentored, and grown teams of up to 8 engineers. Skilled at turning ambiguous roadmaps into predictable delivery through agile rituals, clear stakeholder communication, and pragmatic technical planning.',
   },
   {
     id: 'demo-b3',
     type: 'summary',
-    jobTypeIds: ['jt6'],
+    tagIds: ['jt6'],
     headline: 'Data-Focused Software Engineer',
     body: 'Engineer with deep data platform experience: Python and SQL pipelines, Airflow orchestration, dbt transformations, and warehouse modeling. I build data infrastructure that analysts and products can actually rely on.',
   },
@@ -51,7 +51,7 @@ const blocks = [
   {
     id: 'demo-b4',
     type: 'experience',
-    jobTypeIds: ['jt1'],
+    tagIds: ['jt1'],
     company: 'Northwind Labs',
     role: 'Senior Full-Stack Engineer',
     location: 'Seattle, WA',
@@ -63,7 +63,7 @@ const blocks = [
   {
     id: 'demo-b5',
     type: 'experience',
-    jobTypeIds: ['jt6', 'jt1'],
+    tagIds: ['jt6', 'jt1'],
     company: 'Brightline Analytics',
     role: 'Data Engineer',
     location: 'Portland, OR',
@@ -75,7 +75,7 @@ const blocks = [
   {
     id: 'demo-b6',
     type: 'experience',
-    jobTypeIds: ['jt2'],
+    tagIds: ['jt2'],
     company: 'Brightline Analytics',
     role: 'Engineering Team Lead',
     location: 'Portland, OR',
@@ -87,7 +87,7 @@ const blocks = [
   {
     id: 'demo-b7',
     type: 'experience',
-    jobTypeIds: ['jt1', 'jt4'],
+    tagIds: ['jt1', 'jt4'],
     company: 'Studio Meridian',
     role: 'Frontend Developer',
     location: 'Portland, OR',
@@ -101,7 +101,7 @@ const blocks = [
   {
     id: 'demo-b8',
     type: 'education',
-    jobTypeIds: ['jt1', 'jt6', 'jt10'],
+    tagIds: ['jt1', 'jt6', 'jt10'],
     institution: 'Cascadia State University',
     degree: 'Bachelor of Science',
     field: 'Computer Science',
@@ -112,7 +112,7 @@ const blocks = [
   {
     id: 'demo-b9',
     type: 'education',
-    jobTypeIds: ['jt1', 'jt3'],
+    tagIds: ['jt1', 'jt3'],
     institution: 'Amazon Web Services',
     degree: 'Certification',
     field: 'Solutions Architect – Associate',
@@ -125,7 +125,7 @@ const blocks = [
   {
     id: 'demo-b10',
     type: 'skills',
-    jobTypeIds: ['jt3', 'jt1', 'jt4'],
+    tagIds: ['jt3', 'jt1', 'jt4'],
     name: 'Frontend Skills',
     category: 'Frontend',
     skills: 'React, TypeScript, JavaScript (ES2023), Next.js, HTML5, CSS3, Accessibility (WCAG), Jest, Cypress',
@@ -136,7 +136,7 @@ const blocks = [
   {
     id: 'demo-b11',
     type: 'skills',
-    jobTypeIds: ['jt3', 'jt1'],
+    tagIds: ['jt3', 'jt1'],
     name: 'Backend & Cloud',
     category: 'Backend & Cloud',
     skills: 'Node.js, Express, REST APIs, PostgreSQL, MongoDB, AWS (EC2, S3, Lambda, RDS), Docker, GitHub Actions CI/CD',
@@ -147,7 +147,7 @@ const blocks = [
   {
     id: 'demo-b12',
     type: 'skills',
-    jobTypeIds: ['jt3', 'jt6'],
+    tagIds: ['jt3', 'jt6'],
     name: 'Data Engineering',
     category: 'Data Engineering',
     skills: 'Python, SQL, Apache Airflow, dbt, Apache Spark, ETL/ELT pipelines, Data warehouse modeling, Pandas',
@@ -158,7 +158,7 @@ const blocks = [
   {
     id: 'demo-b13',
     type: 'skills',
-    jobTypeIds: ['jt3', 'jt2'],
+    tagIds: ['jt3', 'jt2'],
     name: 'Leadership & Delivery',
     category: 'Leadership & Delivery',
     skills: 'Agile/Scrum, Mentoring, Hiring, Roadmapping, Stakeholder communication, OKRs, Technical writing',
@@ -171,10 +171,11 @@ const blocks = [
   {
     id: 'demo-b14',
     type: 'projects',
-    jobTypeIds: ['jt1', 'jt3'],
+    tagIds: ['jt1', 'jt3'],
     role: 'Lead Architect & Creator',
     company: 'LogStream Analytics Engine',
-    location: 'github.com/jordanavery/logstream',
+    link: 'https://github.com/jordanavery/logstream',
+    location: '',
     startDate: '2023',
     endDate: 'Present',
     description:
@@ -185,7 +186,7 @@ const blocks = [
   {
     id: 'demo-b15',
     type: 'activities',
-    jobTypeIds: ['jt2', 'jt1'],
+    tagIds: ['jt2', 'jt1'],
     role: 'Co-Organizer & Technical Mentor',
     company: 'Pacific NW Student Hackathon',
     location: 'Seattle, WA',
@@ -300,17 +301,17 @@ async function seed() {
   console.log(`Authenticated as "${EMAIL}"`);
 
   // --- Job types: fill in any missing defaults ---
-  const existingJt = await call('GET', '/api/user/jobtypes', { token });
-  const have = existingJt.json || {};
+  const existingTags = await call('GET', '/api/user/tags', { token });
+  const have = existingTags.json || {};
   let jtAdded = 0;
-  for (const [id, name] of Object.entries(jobTypes)) {
+  for (const [id, name] of Object.entries(tags)) {
     if (!have[id]) {
-      const r = await call('POST', '/api/user/jobtypes', { token, body: { id, name } });
+      const r = await call('POST', '/api/user/tags', { token, body: { id, name } });
       if (r.status !== 201) throw new Error(`Job type ${id} failed: ${JSON.stringify(r.json)}`);
       jtAdded++;
     }
   }
-  console.log(`Job types: ${jtAdded} added, ${Object.keys(jobTypes).length - jtAdded} already present`);
+  console.log(`Tags: ${jtAdded} added, ${Object.keys(tags).length - jtAdded} already present`);
 
   // --- Blocks: bulk upsert ---
   const bulk = await call('POST', '/api/blocks/bulk', { token, body: blocks });

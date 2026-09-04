@@ -65,7 +65,39 @@ export default function ResumeBlock({ blockId, blockType, sectionId, index, rend
       </div>
       {(rendered.title || rendered.location) && (
         <div className={styles.entryHeader}>
-          {rendered.title && <div className={styles.entryTitle}>{rendered.title}</div>}
+          {rendered.title && (
+            <div className={styles.entryTitle}>
+              {rendered.link ? (
+                <a
+                  href={formatContactUrl(rendered.link.trim())}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={styles.headerLink}
+                  title={`Open link: ${rendered.link.trim()}`}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {rendered.title}
+                  <svg
+                    className={styles.externalIcon}
+                    width="10"
+                    height="10"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                    data-print-hide
+                  >
+                    <path d="M11 3h2v2M8 8l5-5M13 9v4a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h4" />
+                  </svg>
+                </a>
+              ) : (
+                rendered.title
+              )}
+            </div>
+          )}
           {rendered.location && (
             <div className={styles.entryLocation}>
               {isLocationUrl ? (
