@@ -10,14 +10,63 @@ export default function PropertiesPanel({
   onUpdatePersonalInfo,
   onSaveDefaultPersonalInfo,
   saveDefaultStatus = '',
+  onReorderSections,
+  onAddSection,
+  onRemoveSection,
 }) {
   const normInfo = normalizePersonalInfo(personalInfo);
   const fields = normInfo.fields || [];
+  const sectionOrder = resume.sectionOrder || [];
+  const sections = resume.sections || {};
 
   const [draggedIdx, setDraggedIdx] = useState(null);
   const [dragOverIdx, setDragOverIdx] = useState(null);
+  const [draggedSecIdx, setDraggedSecIdx] = useState(null);
+  const [dragOverSecIdx, setDragOverSecIdx] = useState(null);
   const [linkModalIdx, setLinkModalIdx] = useState(null);
   const [linkInputUrl, setLinkInputUrl] = useState('');
+
+  const handleSecDragStart = (e, index) => {
+    if (e.target.tagName === 'BUTTON') {
+      e.preventDefault();
+      return;
+    }
+    setDraggedSecIdx(index);
+    e.dataTransfer.setData('text/plain', String(index));
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleSecDragOver = (e, index) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverSecIdx !== index) {
+      setDragOverSecIdx(index);
+    }
+  };
+
+  const handleSecDragLeave = (e, index) => {
+    if (e.relatedTarget && e.currentTarget.contains(e.relatedTarget)) {
+      return;
+    }
+    if (dragOverSecIdx === index) {
+      setDragOverSecIdx(null);
+    }
+  };
+
+  const handleSecDrop = (e, targetIdx) => {
+    e.preventDefault();
+    const sourceIdx = draggedSecIdx ?? (e.dataTransfer.getData('text/plain') !== '' ? Number(e.dataTransfer.getData('text/plain')) : null);
+    if (sourceIdx !== null && !isNaN(sourceIdx) && sourceIdx !== targetIdx) {
+      onReorderSections?.(sourceIdx, targetIdx);
+    }
+    setDraggedSecIdx(null);
+    setDragOverSecIdx(null);
+  };
+
+  const handleSecDragEnd = () => {
+    setDraggedSecIdx(null);
+    setDragOverSecIdx(null);
+  };
 
   const handleNameChange = (name) => {
     if (typeof onUpdatePersonalInfo === 'function') {
@@ -151,6 +200,119 @@ export default function PropertiesPanel({
                 </button>
               );
             })}
+          </div>
+        </div>
+
+        <div className={styles.sectionDivider} />
+
+        <div className={styles.panelSection}>
+          <div className={styles.sectionHeadingRow}>
+            <h3 className={styles.sectionTitle}>Sections ({sectionOrder.length})</h3>
+            <button
+              type="button"
+              className={styles.addSectionSmallBtn}
+              onClick={onAddSection}
+              title="Add a new section"
+            >
+              + Add Section
+            </button>
+          </div>
+
+          <div className={`${styles.fieldsList} ${draggedSecIdx !== null ? styles.dragActive : ''}`}>
+            {sectionOrder.length === 0 ? (
+              <p className={styles.emptySecNote}>No sections added yet.</p>
+            ) : (
+              sectionOrder.map((title, idx) => {
+                const blockCount = (sections[title] || []).length;
+                const isFirst = idx === 0;
+                const isLast = idx === sectionOrder.length - 1;
+
+                return (
+                  <div
+                    key={title || idx}
+                    className={`
+                      ${styles.sectionItemCard}
+                      ${draggedSecIdx === idx ? styles.dragging : ''}
+                      ${dragOverSecIdx === idx && draggedSecIdx !== idx ? styles.dragOver : ''}
+                    `}
+                    draggable
+                    onDragStart={(e) => handleSecDragStart(e, idx)}
+                    onDragEnd={handleSecDragEnd}
+                    onDragOver={(e) => handleSecDragOver(e, idx)}
+                    onDragLeave={(e) => handleSecDragLeave(e, idx)}
+                    onDrop={(e) => handleSecDrop(e, idx)}
+                  >
+                    <div className={styles.sectionItemLeft}>
+                      <div
+                        className={styles.dragHandleBtn}
+                        title="Drag to reorder"
+                        aria-label="Drag to reorder"
+                      >
+                        <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                          <rect x="2" y="3" width="12" height="2" rx="0.5" />
+                          <rect x="2" y="7" width="12" height="2" rx="0.5" />
+                          <rect x="2" y="11" width="12" height="2" rx="0.5" />
+                        </svg>
+                      </div>
+                      <div className={styles.sectionItemInfo}>
+                        <span className={styles.sectionItemName} title={title}>{title}</span>
+                        <span className={styles.sectionCountBadge}>
+                          {blockCount} {blockCount === 1 ? 'block' : 'blocks'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className={styles.sectionItemActions}>
+                      <button
+                        type="button"
+                        className={styles.fieldActionBtn}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onReorderSections?.(idx, idx - 1);
+                        }}
+                        disabled={isFirst}
+                        title={isFirst ? 'Top section' : 'Move section up'}
+                        aria-label="Move section up"
+                      >
+                        <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M3 10l5-5 5 5" />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.fieldActionBtn}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onReorderSections?.(idx, idx + 1);
+                        }}
+                        disabled={isLast}
+                        title={isLast ? 'Bottom section' : 'Move section down'}
+                        aria-label="Move section down"
+                      >
+                        <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M3 6l5 5 5-5" />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        className={`${styles.fieldActionBtn} ${styles.deleteBtn}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onRemoveSection?.(title);
+                        }}
+                        title="Remove section"
+                        aria-label="Remove section"
+                      >
+                        <svg width="10" height="10" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                          <line x1="3" y1="3" x2="13" y2="13" />
+                          <line x1="13" y1="3" x2="3" y2="13" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
 

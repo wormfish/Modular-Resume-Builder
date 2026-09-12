@@ -13,6 +13,7 @@ export default function ResumeCanvas({
   onAddSection,
   onRemoveSection,
   onUpdateSectionTitle,
+  onReorderSections,
   onClearResume,
   onDropFromLibrary,
   onReorderInCanvas,
@@ -23,6 +24,8 @@ export default function ResumeCanvas({
   onCanvasDragEnd = () => {},
 }) {
   const [dragOverSection, setDragOverSection] = useState(null);
+  const [draggedSectionIdx, setDraggedSectionIdx] = useState(null);
+  const [sectionDropTarget, setSectionDropTarget] = useState(null);
 
   const template = TEMPLATES[resume.templateId] || TEMPLATES.classic;
   const sectionOrder = resume.sectionOrder || [];
@@ -43,26 +46,87 @@ export default function ResumeCanvas({
         { id: 'c-loc', text: (normInfo.location || '').trim(), url: null },
       ].filter((item) => item.text);
 
-  const handleDragOver = useCallback((e, sectionTitle) => {
+  const handleSectionDragStart = (e, index, title) => {
+    setDraggedSectionIdx(index);
+    e.dataTransfer.setData(DRAG_KEYS.SOURCE, DRAG_SOURCE.SECTION);
+    e.dataTransfer.setData(DRAG_KEYS.SECTION_INDEX, String(index));
+    e.dataTransfer.setData(DRAG_KEYS.SECTION_TITLE, title);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleSectionDragEnd = () => {
+    setDraggedSectionIdx(null);
+    setSectionDropTarget(null);
+  };
+
+  const handleDragOver = useCallback((e, sectionIdx, sectionTitle) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
-    setDragOverSection(sectionTitle);
-  }, []);
 
-  const handleDragLeave = useCallback((e) => {
-    if (!e.currentTarget.contains(e.relatedTarget)) {
+    // If dragging a section, compute drop target relative to this section
+    const isSectionDrag = draggedSectionIdx !== null || e.dataTransfer.types.includes(DRAG_KEYS.SECTION_INDEX);
+    if (isSectionDrag) {
       setDragOverSection(null);
+      const rect = e.currentTarget.getBoundingClientRect();
+      const midY = rect.top + rect.height / 2;
+      const position = e.clientY < midY ? 'before' : 'after';
+      setSectionDropTarget((prev) => {
+        if (prev?.index === sectionIdx && prev?.position === position) return prev;
+        return { index: sectionIdx, position };
+      });
+      return;
     }
-  }, []);
+
+    // Otherwise dragging a block into this section
+    setSectionDropTarget(null);
+    setDragOverSection(sectionTitle);
+  }, [draggedSectionIdx]);
+
+  const handleDragLeave = useCallback((e, sectionIdx) => {
+    if (!e.currentTarget.contains(e.relatedTarget)) {
+      setDragOverSection((prev) => (prev === sectionOrder[sectionIdx] ? null : prev));
+      setSectionDropTarget((prev) => (prev?.index === sectionIdx ? null : prev));
+    }
+  }, [sectionOrder]);
 
   const handleDrop = useCallback(
-    (e, sectionTitle) => {
+    (e, sectionIdx, sectionTitle) => {
       e.preventDefault();
       setDragOverSection(null);
 
-      const blockId = e.dataTransfer.getData(DRAG_KEYS.BLOCK_ID);
+      // Check if dropped item is a section reorder
       const source = e.dataTransfer.getData(DRAG_KEYS.SOURCE);
+      const rawSectionIdx = e.dataTransfer.getData(DRAG_KEYS.SECTION_INDEX);
+      const isSectionDrop = source === DRAG_SOURCE.SECTION || rawSectionIdx !== '' || draggedSectionIdx !== null;
 
+      if (isSectionDrop) {
+        const sourceIdx = draggedSectionIdx !== null
+          ? draggedSectionIdx
+          : (rawSectionIdx !== '' ? Number(rawSectionIdx) : null);
+
+        const rect = e.currentTarget.getBoundingClientRect();
+        const midY = rect.top + rect.height / 2;
+        const position = sectionDropTarget?.position || (e.clientY < midY ? 'before' : 'after');
+
+        if (sourceIdx !== null && !isNaN(sourceIdx)) {
+          let targetIndex = position === 'after'
+            ? (sourceIdx > sectionIdx ? sectionIdx + 1 : sectionIdx)
+            : (sourceIdx < sectionIdx ? sectionIdx - 1 : sectionIdx);
+
+          targetIndex = Math.max(0, Math.min(sectionOrder.length - 1, targetIndex));
+          if (sourceIdx !== targetIndex) {
+            onReorderSections?.(sourceIdx, targetIndex);
+          }
+        }
+        setDraggedSectionIdx(null);
+        setSectionDropTarget(null);
+        return;
+      }
+
+      setSectionDropTarget(null);
+
+      // Otherwise handle dropping block
+      const blockId = e.dataTransfer.getData(DRAG_KEYS.BLOCK_ID);
       if (!blockId) return;
 
       const afterElement = getDragAfterElement(e.currentTarget, e.clientY);
@@ -76,7 +140,7 @@ export default function ResumeCanvas({
         onReorderInCanvas(sourceSectionTitle, sourceIndex, sectionTitle, insertIndex ?? 999);
       }
     },
-    [onDropFromLibrary, onReorderInCanvas],
+    [draggedSectionIdx, sectionDropTarget, sectionOrder.length, onReorderSections, onDropFromLibrary, onReorderInCanvas],
   );
 
   return (
@@ -121,27 +185,80 @@ export default function ResumeCanvas({
 
           {sectionOrder.map((sectionTitle, sectionIdx) => {
             const blockIds = sections[sectionTitle] || [];
+            const isDraggingThis = draggedSectionIdx === sectionIdx;
+            const isDropBefore = sectionDropTarget?.index === sectionIdx && sectionDropTarget?.position === 'before';
+            const isDropAfter = sectionDropTarget?.index === sectionIdx && sectionDropTarget?.position === 'after';
+
             return (
               <div
-                key={sectionIdx}
-                className={`${styles.resumeSection} ${dragOverSection === sectionTitle ? styles.dragOver : ''}`}
-                onDragOver={(e) => handleDragOver(e, sectionTitle)}
-                onDrop={(e) => handleDrop(e, sectionTitle)}
-                onDragLeave={handleDragLeave}
+                key={sectionTitle || sectionIdx}
+                className={`
+                  ${styles.resumeSection}
+                  ${dragOverSection === sectionTitle ? styles.dragOver : ''}
+                  ${isDraggingThis ? styles.sectionDragging : ''}
+                  ${isDropBefore ? styles.dropTargetBefore : ''}
+                  ${isDropAfter ? styles.dropTargetAfter : ''}
+                `}
+                onDragOver={(e) => handleDragOver(e, sectionIdx, sectionTitle)}
+                onDrop={(e) => handleDrop(e, sectionIdx, sectionTitle)}
+                onDragLeave={(e) => handleDragLeave(e, sectionIdx)}
               >
                 <div className={styles.sectionHeader}>
-                  <h2 className={styles.sectionTitlePrint}>{sectionTitle}</h2>
-                  <input
-                    className={styles.sectionTitle}
-                    value={sectionTitle}
-                    onChange={(e) => onUpdateSectionTitle(sectionTitle, e.target.value)}
-                    data-print-hide
-                  />
+                  <div className={styles.sectionHeaderLeft}>
+                    <div
+                      className={styles.sectionDragHandle}
+                      draggable
+                      onDragStart={(e) => handleSectionDragStart(e, sectionIdx, sectionTitle)}
+                      onDragEnd={handleSectionDragEnd}
+                      title="Drag to reorder section"
+                      aria-label="Drag to reorder section"
+                      data-print-hide
+                    >
+                      <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                        <rect x="2" y="3" width="12" height="2" rx="0.5" />
+                        <rect x="2" y="7" width="12" height="2" rx="0.5" />
+                        <rect x="2" y="11" width="12" height="2" rx="0.5" />
+                      </svg>
+                    </div>
+                    <h2 className={styles.sectionTitlePrint}>{sectionTitle}</h2>
+                    <input
+                      className={styles.sectionTitle}
+                      value={sectionTitle}
+                      onChange={(e) => onUpdateSectionTitle(sectionTitle, e.target.value)}
+                      data-print-hide
+                    />
+                  </div>
                   <div className={styles.sectionActions} data-print-hide>
                     <button
-                      className={styles.iconBtn}
+                      type="button"
+                      className={`${styles.iconBtn} ${styles.reorderBtn}`}
+                      onClick={() => onReorderSections?.(sectionIdx, sectionIdx - 1)}
+                      disabled={sectionIdx === 0}
+                      title={sectionIdx === 0 ? 'Top section' : 'Move section up'}
+                      aria-label="Move section up"
+                    >
+                      <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M3 10l5-5 5 5" />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      className={`${styles.iconBtn} ${styles.reorderBtn}`}
+                      onClick={() => onReorderSections?.(sectionIdx, sectionIdx + 1)}
+                      disabled={sectionIdx === sectionOrder.length - 1}
+                      title={sectionIdx === sectionOrder.length - 1 ? 'Bottom section' : 'Move section down'}
+                      aria-label="Move section down"
+                    >
+                      <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M3 6l5 5 5-5" />
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      className={`${styles.iconBtn} ${styles.deleteBtn}`}
                       onClick={() => onRemoveSection(sectionTitle)}
                       title="Remove section"
+                      aria-label="Remove section"
                     >
                       &times;
                     </button>

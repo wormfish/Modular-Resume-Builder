@@ -140,6 +140,46 @@
   background: var(--primary-light);
 }
 
+.sectionDragging {
+  opacity: 0.45;
+  border: 2px dashed var(--border);
+  background: var(--panel-2);
+}
+
+.dropTargetBefore {
+  position: relative;
+}
+
+.dropTargetBefore::before {
+  content: '';
+  position: absolute;
+  top: -3px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--primary);
+  border-radius: 2px;
+  box-shadow: 0 0 6px rgba(39, 75, 255, 0.45);
+  z-index: 10;
+}
+
+.dropTargetAfter {
+  position: relative;
+}
+
+.dropTargetAfter::after {
+  content: '';
+  position: absolute;
+  bottom: -3px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--primary);
+  border-radius: 2px;
+  box-shadow: 0 0 6px rgba(39, 75, 255, 0.45);
+  z-index: 10;
+}
+
 .sectionHeader {
   display: flex;
   align-items: center;
@@ -147,6 +187,37 @@
   margin-bottom: 4px;
   border-bottom: 2px solid #000;
   padding-bottom: 3px;
+}
+
+.sectionHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.sectionDragHandle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  color: var(--muted);
+  cursor: grab;
+  user-select: none;
+  border-radius: var(--radius);
+  transition: color 0.12s, background 0.12s;
+  flex-shrink: 0;
+}
+
+.sectionDragHandle:hover {
+  color: var(--ink);
+  background: var(--panel-2);
+}
+
+.sectionDragHandle:active {
+  cursor: grabbing;
 }
 
 .sectionTitlePrint {
@@ -179,7 +250,8 @@
 
 .sectionActions {
   display: flex;
-  gap: 4px;
+  align-items: center;
+  gap: 2px;
 }
 
 .iconBtn {
@@ -199,6 +271,44 @@
   color: var(--danger);
   transform: none;
   box-shadow: none;
+}
+
+.reorderBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  color: var(--muted);
+  transition: color 0.12s, background 0.12s, opacity 0.12s;
+}
+
+.reorderBtn:hover:not(:disabled) {
+  color: var(--primary);
+  background: var(--panel-2);
+}
+
+.reorderBtn:disabled {
+  opacity: 0.22;
+  cursor: not-allowed;
+  background: transparent;
+  pointer-events: none;
+}
+
+.deleteBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  font-size: 16px;
+}
+
+.deleteBtn:hover {
+  color: var(--danger);
+  background: var(--panel-2);
 }
 
 .dropHint {

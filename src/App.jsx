@@ -714,6 +714,27 @@ export default function App() {
     });
   }, [setResume]);
 
+  const reorderSections = useCallback((fromIndex, toIndex) => {
+    setResume((prev) => {
+      const order = [...(prev.sectionOrder || [])];
+      if (
+        fromIndex < 0 ||
+        fromIndex >= order.length ||
+        toIndex < 0 ||
+        toIndex >= order.length ||
+        fromIndex === toIndex
+      ) {
+        return prev;
+      }
+      const [moved] = order.splice(fromIndex, 1);
+      order.splice(toIndex, 0, moved);
+      return {
+        ...prev,
+        sectionOrder: order,
+      };
+    });
+  }, [setResume]);
+
   const clearResume = useCallback(() => {
     if (!confirm('Clear all sections from this resume? Blocks in the library will not be deleted.')) return;
     // Clear sections but keep the resume structure
@@ -967,6 +988,7 @@ export default function App() {
           onAddSection={addSection}
           onRemoveSection={removeSection}
           onUpdateSectionTitle={updateSectionTitle}
+          onReorderSections={reorderSections}
           onClearResume={clearResume}
           onDropFromLibrary={handleDropFromLibrary}
           onReorderInCanvas={handleReorderInCanvas}
@@ -1007,6 +1029,9 @@ export default function App() {
                 onUpdatePersonalInfo={updatePersonalInfoField}
                 onSaveDefaultPersonalInfo={saveDefaultPersonalInfo}
                 saveDefaultStatus={saveDefaultStatus}
+                onReorderSections={reorderSections}
+                onAddSection={addSection}
+                onRemoveSection={removeSection}
               />
             </div>
             <div
