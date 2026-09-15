@@ -18,6 +18,7 @@ A full-stack web application for building tailored resumes from a library of reu
 - **PDF export** — Print-optimized stylesheets produce clean A4 output via `window.print()`
 - **LinkedIn job import** — Companion Chrome extension copies a job description from LinkedIn or hands it straight to the builder for AI keyword extraction and auto-fill
 - **Editable resume title** — Rename resumes directly in the builder header
+- **Hide section headings** — Toggle a section's title and rule off with the eye icon to visually group its blocks without a heading (saved per resume)
 - **Save to cloud** — Persist resumes and blocks to MongoDB with one click
 
 ### Dashboard
@@ -70,7 +71,15 @@ Create a `server/.env` file with:
 ```env
 MONGODB_URI=your_mongodb_connection_string
 JWT_SECRET=your_jwt_secret_key
+
+# Optional — resolvers Node uses for mongodb+srv SRV lookups. Override if the
+# default resolvers are unreachable on your network. Defaults to 223.5.5.5,119.29.29.29.
+DNS_SERVERS=
 ```
+
+> MongoDB Atlas `mongodb+srv://` URIs require an SRV DNS lookup. If Node reports
+> `querySrv ECONNREFUSED`, set `DNS_SERVERS` to resolvers that can answer SRV
+> queries (comma-separated).
 
 ### Install & Run
 
@@ -243,6 +252,7 @@ The `chrome-extension/` folder contains **Copy Job Description — Modular Resum
     "Summary": ["b1"],
     "Experience": ["b2", "b3"],
   },
+  hiddenSections: [String], // Section titles whose header (title + rule) is hidden
 }
 ```
 

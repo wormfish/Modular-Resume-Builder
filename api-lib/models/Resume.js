@@ -9,6 +9,7 @@ const resumeSchema = new mongoose.Schema(
     personalInfo: { type: mongoose.Schema.Types.Mixed, default: () => ({ name: '', fields: [] }) },
     sectionOrder: { type: [String], default: [] },
     sections: { type: mongoose.Schema.Types.Mixed, default: {} },
+    hiddenSections: { type: [String], default: [] },
   },
   { timestamps: true },
 );

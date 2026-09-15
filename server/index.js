@@ -1,5 +1,6 @@
 import express from 'express';
 import mongoose from 'mongoose';
+import dns from 'dns';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
@@ -17,6 +18,14 @@ import autoparseBlockRouter from './routes/autoparseBlock.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: join(__dirname, '.env') });
+
+const dnsServers = (process.env.DNS_SERVERS || '223.5.5.5,119.29.29.29')
+  .split(',')
+  .map((server) => server.trim())
+  .filter(Boolean);
+if (dnsServers.length) {
+  dns.setServers(dnsServers);
+}
 
 if (!process.env.JWT_SECRET) {
   console.error('Missing required environment variable: JWT_SECRET');

@@ -326,6 +326,7 @@ export const INITIAL_RESUME = {
     Education: ['b4'],
     Skills: ['b5'],
   },
+  hiddenSections: [],
 };
 
 export const BLANK_RESUME = {
@@ -346,6 +347,7 @@ export const BLANK_RESUME = {
   },
   sectionOrder: [],
   sections: {},
+  hiddenSections: [],
 };
 
 export const BLANK_BLOCKS = [];

@@ -233,7 +233,7 @@ export default function App() {
         const found = resumes.find((r) => r._id === resumeId);
         if (found) {
           // Flatten personalInfo if needed and set resume
-          setResume({ ...found, id: found._id });
+          setResume({ ...found, id: found._id, hiddenSections: found.hiddenSections || [] });
         }
       })
       .catch((err) => console.error('Failed to fetch resume:', err));
@@ -282,6 +282,10 @@ export default function App() {
 
       if (!next.sectionOrder) {
         next = { ...next, sectionOrder: Object.keys(next.sections || {}) };
+      }
+
+      if (!Array.isArray(next.hiddenSections)) {
+        next = { ...next, hiddenSections: [] };
       }
 
       // Migrate separate personalInfo localStorage key into resume
@@ -695,6 +699,7 @@ export default function App() {
         ...prev,
         sectionOrder: (prev.sectionOrder || []).filter((t) => t !== sectionTitle),
         sections: newSections,
+        hiddenSections: (prev.hiddenSections || []).filter((t) => t !== sectionTitle),
       };
     });
   }, [setResume]);
@@ -710,6 +715,7 @@ export default function App() {
         ...prev,
         sectionOrder: (prev.sectionOrder || []).map((t) => (t === oldTitle ? newTitle : t)),
         sections: newSections,
+        hiddenSections: (prev.hiddenSections || []).map((t) => (t === oldTitle ? newTitle : t)),
       };
     });
   }, [setResume]);
@@ -735,6 +741,16 @@ export default function App() {
     });
   }, [setResume]);
 
+  const toggleSectionVisibility = useCallback((sectionTitle) => {
+    setResume((prev) => {
+      const hidden = prev.hiddenSections || [];
+      const hiddenSections = hidden.includes(sectionTitle)
+        ? hidden.filter((t) => t !== sectionTitle)
+        : [...hidden, sectionTitle];
+      return { ...prev, hiddenSections };
+    });
+  }, [setResume]);
+
   const clearResume = useCallback(() => {
     if (!confirm('Clear all sections from this resume? Blocks in the library will not be deleted.')) return;
     // Clear sections but keep the resume structure
@@ -742,6 +758,7 @@ export default function App() {
       ...prev,
       sectionOrder: [],
       sections: {},
+      hiddenSections: [],
     }));
   }, [setResume]);
 
@@ -771,6 +788,7 @@ export default function App() {
           personalInfo: resume.personalInfo,
           sectionOrder: resume.sectionOrder,
           sections: resume.sections,
+          hiddenSections: resume.hiddenSections || [],
         }),
       });
 
@@ -989,6 +1007,7 @@ export default function App() {
           onRemoveSection={removeSection}
           onUpdateSectionTitle={updateSectionTitle}
           onReorderSections={reorderSections}
+          onToggleSectionVisibility={toggleSectionVisibility}
           onClearResume={clearResume}
           onDropFromLibrary={handleDropFromLibrary}
           onReorderInCanvas={handleReorderInCanvas}

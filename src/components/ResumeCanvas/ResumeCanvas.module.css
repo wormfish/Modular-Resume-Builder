@@ -189,6 +189,15 @@
   padding-bottom: 3px;
 }
 
+.sectionHeaderHidden {
+  border-bottom-color: transparent;
+  padding-bottom: 0;
+}
+
+.sectionHeaderHidden .sectionHeaderLeft {
+  visibility: hidden;
+}
+
 .sectionHeaderLeft {
   display: flex;
   align-items: center;
@@ -294,6 +303,26 @@
   cursor: not-allowed;
   background: transparent;
   pointer-events: none;
+}
+
+.visibilityBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  color: var(--muted);
+  transition: color 0.12s, background 0.12s;
+}
+
+.visibilityBtn:hover {
+  color: var(--primary);
+  background: var(--panel-2);
+}
+
+.visibilityBtnHidden {
+  color: var(--primary);
 }
 
 .deleteBtn {

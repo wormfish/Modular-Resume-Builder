@@ -205,7 +205,10 @@ export default function BlockModal({
 
   const handleSkillDrop = (e, targetIndex) => {
     e.preventDefault();
-    if (draggedSkillIdx === null || draggedSkillIdx === targetIndex) return;
+    if (draggedSkillIdx === null || draggedSkillIdx === targetIndex) {
+      setDraggedSkillIdx(null);
+      return;
+    }
     const next = [...skillItems];
     const [moved] = next.splice(draggedSkillIdx, 1);
     next.splice(targetIndex, 0, moved);
@@ -285,11 +288,18 @@ export default function BlockModal({
 
   const handleDescDrop = (e, targetIndex) => {
     e.preventDefault();
-    if (draggedDescIdx === null || draggedDescIdx === targetIndex) return;
+    if (draggedDescIdx === null || draggedDescIdx === targetIndex) {
+      setDraggedDescIdx(null);
+      return;
+    }
     const items = getDescriptionItems();
     const [moved] = items.splice(draggedDescIdx, 1);
     items.splice(targetIndex, 0, moved);
     setTempBlock((prev) => ({ ...prev, description: items }));
+    setDraggedDescIdx(null);
+  };
+
+  const handleDescDragEnd = () => {
     setDraggedDescIdx(null);
   };
 
@@ -390,13 +400,16 @@ export default function BlockModal({
                   <div
                     key={idx}
                     className={`${styles.skillRow} ${draggedSkillIdx === idx ? styles.skillRowDragging : ''}`}
-                    draggable
-                    onDragStart={(e) => handleSkillDragStart(e, idx)}
                     onDragOver={handleSkillDragOver}
                     onDrop={(e) => handleSkillDrop(e, idx)}
-                    onDragEnd={handleSkillDragEnd}
                   >
-                    <span className={styles.dragHandle} title="Drag to reorder">
+                    <span
+                      className={styles.dragHandle}
+                      title="Drag to reorder"
+                      draggable
+                      onDragStart={(e) => handleSkillDragStart(e, idx)}
+                      onDragEnd={handleSkillDragEnd}
+                    >
                       &#9776;
                     </span>
                     <input
@@ -458,13 +471,16 @@ export default function BlockModal({
                         <div
                           key={idx}
                           className={`${styles.skillRow} ${draggedDescIdx === idx ? styles.skillRowDragging : ''}`}
-                          draggable
-                          onDragStart={(e) => handleDescDragStart(e, idx)}
                           onDragOver={handleSkillDragOver}
                           onDrop={(e) => handleDescDrop(e, idx)}
-                          onDragEnd={handleSkillDragEnd}
                         >
-                          <span className={styles.dragHandle} title="Drag to reorder">
+                          <span
+                            className={styles.dragHandle}
+                            title="Drag to reorder"
+                            draggable
+                            onDragStart={(e) => handleDescDragStart(e, idx)}
+                            onDragEnd={handleDescDragEnd}
+                          >
                             &#9776;
                           </span>
                           <span className={styles.bulletLabel}>•</span>

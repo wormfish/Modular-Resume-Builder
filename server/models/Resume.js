@@ -10,6 +10,7 @@ const resumeSchema = new mongoose.Schema(
     sectionOrder: { type: [String], default: [] },
     // sections is a free-form object: { "Summary": ["b1"], "Experience": ["b2", "b3"] }
     sections: { type: mongoose.Schema.Types.Mixed, default: {} },
+    hiddenSections: { type: [String], default: [] },
   },
   { timestamps: true },
 );

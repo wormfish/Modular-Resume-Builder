@@ -14,6 +14,7 @@ export default function ResumeCanvas({
   onRemoveSection,
   onUpdateSectionTitle,
   onReorderSections,
+  onToggleSectionVisibility,
   onClearResume,
   onDropFromLibrary,
   onReorderInCanvas,
@@ -30,6 +31,7 @@ export default function ResumeCanvas({
   const template = TEMPLATES[resume.templateId] || TEMPLATES.classic;
   const sectionOrder = resume.sectionOrder || [];
   const sections = resume.sections || {};
+  const hiddenSections = resume.hiddenSections || [];
 
   const normInfo = normalizePersonalInfo(personalInfo);
   const contactItems = Array.isArray(normInfo.fields)
@@ -188,6 +190,7 @@ export default function ResumeCanvas({
             const isDraggingThis = draggedSectionIdx === sectionIdx;
             const isDropBefore = sectionDropTarget?.index === sectionIdx && sectionDropTarget?.position === 'before';
             const isDropAfter = sectionDropTarget?.index === sectionIdx && sectionDropTarget?.position === 'after';
+            const isHeaderHidden = hiddenSections.includes(sectionTitle);
 
             return (
               <div
@@ -203,7 +206,7 @@ export default function ResumeCanvas({
                 onDrop={(e) => handleDrop(e, sectionIdx, sectionTitle)}
                 onDragLeave={(e) => handleDragLeave(e, sectionIdx)}
               >
-                <div className={styles.sectionHeader}>
+                <div className={`${styles.sectionHeader} ${isHeaderHidden ? styles.sectionHeaderHidden : ''}`}>
                   <div className={styles.sectionHeaderLeft}>
                     <div
                       className={styles.sectionDragHandle}
@@ -229,6 +232,20 @@ export default function ResumeCanvas({
                     />
                   </div>
                   <div className={styles.sectionActions} data-print-hide>
+                    <button
+                      type="button"
+                      className={`${styles.iconBtn} ${styles.visibilityBtn} ${isHeaderHidden ? styles.visibilityBtnHidden : ''}`}
+                      onClick={() => onToggleSectionVisibility?.(sectionTitle)}
+                      title={isHeaderHidden ? 'Show section header and line' : 'Hide section header and line'}
+                      aria-label={isHeaderHidden ? 'Show section header' : 'Hide section header'}
+                      aria-pressed={isHeaderHidden}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M1.5 8S4 3.5 8 3.5 14.5 8 14.5 8 12 12.5 8 12.5 1.5 8 1.5 8Z" />
+                        <circle cx="8" cy="8" r="2" />
+                        {isHeaderHidden && <path d="M2.5 2.5l11 11" />}
+                      </svg>
+                    </button>
                     <button
                       type="button"
                       className={`${styles.iconBtn} ${styles.reorderBtn}`}

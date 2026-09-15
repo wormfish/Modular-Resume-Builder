@@ -58,7 +58,7 @@
     border-radius: 0 !important;
     background: #fff !important;
     /* Replaces the removed @page margin so content isn't flush to edges */
-    padding: 15mm !important;
+    padding: 8mm 15mm 5mm !important;
     margin: 0 !important;
   }
 
@@ -107,12 +107,17 @@
     min-height: auto !important;
   }
 
-  [class*='sectionHeader'] {
+  [class*='sectionHeader']:not([class*='sectionHeaderLeft']) {
     display: flex !important;
     align-items: center !important;
     margin-bottom: 4px !important;
     border-bottom: 2px solid #000 !important;
     padding-bottom: 3px !important;
+  }
+
+  [class*='sectionHeader'][class*='sectionHeaderHidden'] {
+    display: none !important;
+    border-bottom: none !important;
   }
 
   /* Section title: real semantic heading for 100% vector selectable text & ATS parsing */
@@ -147,6 +152,10 @@
     justify-content: space-between !important;
     align-items: baseline !important;
     margin-bottom: 0px !important;
+  }
+
+  [class*='entryHeaderLinked'] {
+    margin-bottom: 2px !important;
   }
 
   [class*='entrySubHeader'] {
