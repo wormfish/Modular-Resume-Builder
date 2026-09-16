@@ -184,7 +184,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 4px;
+  margin-bottom: 8px;
   border-bottom: 2px solid #000;
   padding-bottom: 3px;
 }

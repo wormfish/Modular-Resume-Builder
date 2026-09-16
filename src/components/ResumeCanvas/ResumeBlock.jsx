@@ -10,12 +10,12 @@ export default function ResumeBlock({ blockId, blockType, sectionId, index, rend
     e.dataTransfer.setData(DRAG_KEYS.SOURCE_SECTION, sectionId);
     e.dataTransfer.setData(DRAG_KEYS.SOURCE_INDEX, String(index));
     e.dataTransfer.effectAllowed = 'move';
-    e.currentTarget.closest('[data-resume-block]')?.classList.add(styles.dragging);
+    e.currentTarget.classList.add(styles.dragging);
     onCanvasDragStart?.();
   };
 
   const handleDragEnd = (e) => {
-    e.currentTarget.closest('[data-resume-block]')?.classList.remove(styles.dragging);
+    e.currentTarget.classList.remove(styles.dragging);
     onCanvasDragEnd?.();
   };
 
@@ -27,11 +27,14 @@ export default function ResumeBlock({ blockId, blockType, sectionId, index, rend
   return (
     <div
       className={styles.resumeBlock}
+      draggable
       data-resume-block
       data-block-type={blockType}
       data-block-id={blockId}
       data-section-id={sectionId}
       data-idx={index}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
     >
       {variantKind && (
         <span
@@ -47,23 +50,6 @@ export default function ResumeBlock({ blockId, blockType, sectionId, index, rend
         </span>
       )}
       <div className={styles.blockActions} data-print-hide>
-        <div
-          className={styles.dragHandle}
-          draggable
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-          title="Drag to move block"
-          aria-label="Drag to move block"
-        >
-          <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
-            <circle cx="5.5" cy="4" r="1.3" />
-            <circle cx="10.5" cy="4" r="1.3" />
-            <circle cx="5.5" cy="8" r="1.3" />
-            <circle cx="10.5" cy="8" r="1.3" />
-            <circle cx="5.5" cy="12" r="1.3" />
-            <circle cx="10.5" cy="12" r="1.3" />
-          </svg>
-        </div>
         <button
           className={styles.iconBtn}
           onClick={onDuplicate}

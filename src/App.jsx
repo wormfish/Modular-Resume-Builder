@@ -115,6 +115,17 @@ export default function App() {
     }
   }, [user, navigate]);
 
+  useEffect(() => {
+    const previousTitle = document.title;
+    return () => {
+      document.title = previousTitle;
+    };
+  }, []);
+
+  useEffect(() => {
+    document.title = resume.title?.trim() || 'Resume';
+  }, [resume.title]);
+
   // ---------- Fetch tags from user profile ----------
   useEffect(() => {
     if (!user?.email) return;

@@ -110,7 +110,7 @@
   [class*='sectionHeader']:not([class*='sectionHeaderLeft']) {
     display: flex !important;
     align-items: center !important;
-    margin-bottom: 4px !important;
+    margin-bottom: 8px !important;
     border-bottom: 2px solid #000 !important;
     padding-bottom: 3px !important;
   }
@@ -140,7 +140,7 @@
   [class*='resumeBlock'] {
     border: none !important;
     padding: 0 !important;
-    margin-bottom: 10px !important;
+    margin-bottom: 8px !important;
     cursor: default !important;
     background: transparent !important;
     box-shadow: none !important;
