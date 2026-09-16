@@ -21,7 +21,7 @@ export default function ImportModal({ getAuthHeaders, onImport, onClose }) {
     if (creating) return;
     setCreating(true);
     try {
-      await onImport(result.parsed, `Imported — ${result.fileName.replace(/\.pdf$/i, '')}`);
+      await onImport(result.parsed, result.title || `Imported — ${result.fileName.replace(/\.pdf$/i, '')}`);
     } catch {
       setCreating(false);
     }
@@ -32,9 +32,14 @@ export default function ImportModal({ getAuthHeaders, onImport, onClose }) {
     setErrorMsg('');
     try {
       setStatus('Reading PDF…');
-      const lines = await extractLinesFromFile(file);
+      const { lines, title } = await extractLinesFromFile(file);
       if (!lines.length) throw new Error('No selectable text found — this PDF may be a scan/image.');
-      const rawText = lines.map((l) => l.text).join('\n');
+      const rawText = lines
+        .map((l) => {
+          const urls = Array.isArray(l.urls) && l.urls.length ? l.urls : l.url ? [l.url] : [];
+          return urls.length ? `${l.text} (${urls.join(' ')})` : l.text;
+        })
+        .join('\n');
 
       let parsed;
       let viaAI = false;
@@ -58,7 +63,7 @@ export default function ImportModal({ getAuthHeaders, onImport, onClose }) {
         setErrorMsg('No recognizable resume sections found in this PDF.');
         return;
       }
-      setResult({ parsed, viaAI, fileName: file.name, rawText });
+      setResult({ parsed, viaAI, fileName: file.name, rawText, title });
       setPhase('done');
     } catch (err) {
       console.error('PDF import error:', err);

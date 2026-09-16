@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET;
+const getJwtSecret = () => process.env.JWT_SECRET;
 
 export function authenticateRequest(req) {
   const authHeader = req.headers.authorization;
@@ -10,7 +10,7 @@ export function authenticateRequest(req) {
 
   const token = authHeader.substring(7);
   try {
-    const decoded = jwt.verify(token, JWT_SECRET);
+    const decoded = jwt.verify(token, getJwtSecret());
     return decoded; // { userId, email, iat, exp }
   } catch (err) {
     return null;

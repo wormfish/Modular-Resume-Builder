@@ -503,22 +503,6 @@ export default function Dashboard() {
     const owner = user?.email || DEFAULT_OWNER;
     setImporting(true);
     try {
-      const docs = parsed.blocks.map(({ type, name, fields }) => ({
-        id: generateId(),
-        owner,
-        type,
-        name: name || '',
-        tagIds: [],
-        ...(fields || {}),
-      }));
-
-      const bulkRes = await fetch('/api/blocks/bulk', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-        body: JSON.stringify(docs),
-      });
-      if (!bulkRes.ok) throw new Error('Failed to save imported blocks');
-
       const SECTION_TITLE = {
         summary: 'Summary',
         experience: 'Experience',
@@ -528,17 +512,40 @@ export default function Dashboard() {
         education: 'Education',
         skills: 'Skills',
       };
+      const docs = [];
       const sections = {};
       const sectionOrder = [];
-      for (const doc of docs) {
-        const s = SECTION_TITLE[doc.type];
+      const sectionAllHeaderless = {};
+      for (const b of parsed.blocks) {
+        const doc = {
+          id: generateId(),
+          owner,
+          type: b.type,
+          name: b.name || '',
+          tagIds: [],
+          ...(b.fields || {}),
+        };
+        docs.push(doc);
+        const s = SECTION_TITLE[b.type];
         if (!s) continue;
         if (!sections[s]) {
           sections[s] = [];
           sectionOrder.push(s);
+          sectionAllHeaderless[s] = true;
         }
         sections[s].push(doc.id);
+        if (!b.headerless) sectionAllHeaderless[s] = false;
       }
+      const hiddenSections = Object.keys(sectionAllHeaderless).filter(
+        (s) => sectionAllHeaderless[s],
+      );
+
+      const bulkRes = await fetch('/api/blocks/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+        body: JSON.stringify(docs),
+      });
+      if (!bulkRes.ok) throw new Error('Failed to save imported blocks');
 
       const resumeId = generateId();
       const personalInfo = normalizePersonalInfo({
@@ -557,6 +564,7 @@ export default function Dashboard() {
           personalInfo,
           sections,
           sectionOrder,
+          hiddenSections,
         }),
       });
       if (!res.ok) throw new Error('Failed to create resume');
