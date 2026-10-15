@@ -411,8 +411,9 @@ function parseEducationEntry(entryLines, sectionX0) {
   if (second && (secondDeg || (second.startDate && !first.startDate))) {
     assignInstitution(first.rest || cleanedHeaders[0] || '');
     degree = second.rest || cleanedHeaders[1] || '';
-    startDate = second.startDate;
-    endDate = second.endDate;
+    const dates = second.startDate || second.endDate ? second : first;
+    startDate = dates.startDate;
+    endDate = dates.endDate;
   } else if (second && firstDeg) {
     degree = first.rest || cleanedHeaders[0] || '';
     startDate = first.startDate;
@@ -729,9 +730,9 @@ export function parseResumeLines(lines) {
     // own PDF export renders them as small all-caps labels (9pt) above
     // larger entry titles, which defeats the font-size heading heuristic.
     const type = matchSectionType(line.text.replace(/[:.]+$/, '').trim());
-    const heading = type !== null || looksLikeHeading(line, bodySize);
-    // Only *known* headings split segments; unknown big lines stay as content.
-    if (heading && (type || line.text.length <= 40)) {
+    // A larger font can indicate an entry title or the person's name, not
+    // just a section boundary. Keep those lines available to the entry parser.
+    if (type !== null) {
       // "SUMMARY" immediately followed by a styled "Professional Summary"
       // (site export): keep the inner, more descriptive title instead of
       // opening an empty second segment of the same type.
