@@ -1,3 +1,4 @@
+import { copyResumeForUser } from '../../api-lib/resumeCopy.js';
 import { connectToDatabase } from '../../api-lib/db.js';
 import Resume from '../../api-lib/models/Resume.js';
 import Block from '../../api-lib/models/Block.js';
@@ -17,6 +18,10 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'POST') {
+      if (req.body?.copyFrom) {
+        const copy = await copyResumeForUser(Resume, Block, req.body.copyFrom, user.email);
+        return res.status(201).json(copy);
+      }
       const { id, title, templateId, personalInfo, sectionOrder, sections, hiddenSections, showLocations } = req.body;
       
       // Check if resume exists and verify ownership
@@ -57,6 +62,6 @@ export default async function handler(req, res) {
     res.status(405).json({ error: 'Method not allowed' });
   } catch (err) {
     console.error('Resumes handler error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(err.status || 500).json({ error: err.status ? err.message : 'Internal server error' });
   }
 }

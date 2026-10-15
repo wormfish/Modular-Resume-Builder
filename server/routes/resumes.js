@@ -1,3 +1,4 @@
+import { copyResumeForUser } from '../../api-lib/resumeCopy.js';
 import { Router } from 'express';
 import Resume from '../models/Resume.js';
 import Block from '../models/Block.js';
@@ -12,13 +13,17 @@ router.get('/', requireAuth, async (req, res) => {
     res.json(resumes);
   } catch (err) {
     console.error('Failed to list resumes:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(err.status || 500).json({ error: err.status ? err.message : 'Internal server error' });
   }
 });
 
 // POST upsert a resume
 router.post('/', requireAuth, async (req, res) => {
   try {
+    if (req.body?.copyFrom) {
+      const copy = await copyResumeForUser(Resume, Block, req.body.copyFrom, req.user.email);
+      return res.status(201).json(copy);
+    }
     const { id, title, templateId, personalInfo, sectionOrder, sections, hiddenSections, showLocations } = req.body;
     
     // Check if resume exists and verify ownership
@@ -35,7 +40,7 @@ router.post('/', requireAuth, async (req, res) => {
     res.status(201).json(resume);
   } catch (err) {
     console.error('Failed to upsert resume:', err);
-    res.status(400).json({ error: 'Invalid resume data' });
+    res.status(err.status || 400).json({ error: err.status ? err.message : 'Invalid resume data' });
   }
 });
 
@@ -62,7 +67,7 @@ router.delete('/', requireAuth, async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     console.error('Failed to delete resume:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(err.status || 500).json({ error: err.status ? err.message : 'Internal server error' });
   }
 });
 

@@ -17,3 +17,17 @@ export function renameSection(resume, oldTitle, newTitle) {
     hiddenSections: (resume.hiddenSections || []).map((name) => name === oldTitle ? title : name),
   };
 }
+
+export function moveBlockToTypeSection(resume, blockId, targetTitle) {
+  if (!Object.values(resume.sections || {}).some((ids) => ids.includes(blockId))) return resume;
+  const sections = Object.fromEntries(Object.entries(resume.sections || {})
+    .map(([title, ids]) => [title, ids.filter((id) => id !== blockId)]));
+  const target = sections[targetTitle] || [];
+  const previousIndex = (resume.sections[targetTitle] || []).indexOf(blockId);
+  target.splice(previousIndex < 0 ? target.length : previousIndex, 0, blockId);
+  sections[targetTitle] = target;
+  return {
+    ...resume, sections,
+    sectionOrder: resume.sectionOrder.includes(targetTitle) ? resume.sectionOrder : [...resume.sectionOrder, targetTitle],
+  };
+}

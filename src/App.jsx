@@ -2,7 +2,8 @@ import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAccountDraft } from './hooks/useAccountDraft';
 import { readAuthUser, clearAuthentication } from './utils/session';
-import { renameSection } from './utils/sections';
+import { renameSection, moveBlockToTypeSection } from './utils/sections';
+import { copyBlock, isBlockEligibleForResume } from '../shared/blocks';
 import { useExportPdf } from './hooks/useExportPdf';
 import {
   BLANK_RESUME,
@@ -361,20 +362,7 @@ export default function App() {
         const prevBlock = blocks.find((b) => b.id === editingBlockId);
         const targetTitle = BLOCK_SCHEMA[tempBlock.type]?.label;
         if (prevBlock && prevBlock.type !== tempBlock.type && targetTitle) {
-          setResume((prev) => {
-            const sections = {};
-            for (const [title, ids] of Object.entries(prev.sections || {})) {
-              sections[title] = ids.filter((id) => id !== editingBlockId);
-            }
-            const alreadyInTarget = (prev.sections?.[targetTitle] || []).includes(editingBlockId);
-            if (!alreadyInTarget) {
-              sections[targetTitle] = [...(sections[targetTitle] || []), editingBlockId];
-            }
-            const sectionOrder = (prev.sectionOrder || []).includes(targetTitle)
-              ? prev.sectionOrder
-              : [...(prev.sectionOrder || []), targetTitle];
-            return { ...prev, sections, sectionOrder };
-          });
+          setResume((prev) => moveBlockToTypeSection(prev, editingBlockId, targetTitle));
         }
       }
 
@@ -514,20 +502,7 @@ export default function App() {
     const variantIn = source.variantIn || null;
     const variantOf = variantIn ? source.variantOf || source.id : null;
 
-    // Strip ids + server metadata that may ride along on flattened blocks,
-    // leaving only the actual content fields.
-    const META_KEYS = new Set(['id', '_id', 'owner', '__v', 'createdAt', 'updatedAt', 'content', 'type', 'tagIds', 'variantIn', 'variantOf']);
-    const contentFields = Object.fromEntries(
-      Object.entries(source).filter(([k]) => !META_KEYS.has(k))
-    );
-    const blockData = {
-      ...contentFields,
-      id: newId,
-      owner,
-      type: source.type,
-      tagIds: source.tagIds || [],
-      ...(variantIn ? { variantIn, variantOf } : {}),
-    };
+    const blockData = copyBlock(source, newId, owner, { variantIn, variantOf });
 
     try {
       const res = await fetch('/api/blocks', {
@@ -796,7 +771,8 @@ export default function App() {
     const owner = user?.email || DEFAULT_OWNER;
 
     // Slim view of the block library for the AI (strip Mongo/internal fields)
-    const blockSummaries = blocks.map((b) => {
+    const resumeId = resume._id || resume.id;
+    const blockSummaries = blocks.filter((b) => isBlockEligibleForResume(b, resumeId)).map((b) => {
       const { id, type, _id, owner: _owner, tagIds, ...fields } = b;
       return { id, type, ...fields };
     });
@@ -810,7 +786,7 @@ export default function App() {
       body: JSON.stringify({
         jobDescription,
         keywords,
-        resume: { sectionOrder: resume.sectionOrder, sections: resume.sections },
+        resume: { id: resumeId, sectionOrder: resume.sectionOrder, sections: resume.sections },
         blocks: blockSummaries,
       }),
     });
@@ -880,7 +856,7 @@ export default function App() {
       message += ` ${emptySections.join(', ')} had no matching blocks — drag some in from the library.`;
     }
     return message;
-  }, [blocks, resume.sectionOrder, resume.sections, user?.email, setBlocks, setResume]);
+  }, [blocks, resume, user?.email, setBlocks, setResume]);
 
   // ---------- Drag and Drop ----------
 
