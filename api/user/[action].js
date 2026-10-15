@@ -5,21 +5,14 @@ import Block from '../../api-lib/models/Block.js';
 import Resume from '../../api-lib/models/Resume.js';
 import { requireAuth } from '../../api-lib/auth.js';
 import { sanitizePersonalInfo as sanitize } from '../../api-lib/personalInfo.js';
-import {
-  generateResetCode,
-  hashResetCode,
-  codeMatches,
-  resetCodeExpiry,
-  sendResetCodeEmail,
-  MAX_RESET_ATTEMPTS,
-} from '../../api-lib/passwordReset.js';
+import { issuePasswordCode, confirmPasswordCode, sendResetCodeEmail } from '../../api-lib/passwordReset.js';
 
 export default async function handler(req, res) {
   const { action } = req.query;
 
   if (action === 'defaults') {
     try {
-      const authUser = requireAuth(req, res);
+      const authUser = await requireAuth(req, res);
       if (!authUser) return;
 
       if (req.method !== 'GET' && req.method !== 'PUT') {
@@ -48,7 +41,7 @@ export default async function handler(req, res) {
 
   if (action === 'tags') {
     try {
-      const user = requireAuth(req, res);
+      const user = await requireAuth(req, res);
       if (!user) return;
 
       await connectToDatabase();
@@ -111,7 +104,7 @@ export default async function handler(req, res) {
 
   if (action === 'password') {
     try {
-      const authUser = requireAuth(req, res);
+      const authUser = await requireAuth(req, res);
       if (!authUser) return;
 
       await connectToDatabase();
@@ -121,13 +114,10 @@ export default async function handler(req, res) {
 
       // POST — email a confirmation code to the account owner.
       if (req.method === 'POST') {
-        const code = generateResetCode();
-        user.resetCodeHash = hashResetCode(code);
-        user.resetCodeExpires = resetCodeExpiry();
-        user.resetCodeAttempts = 0;
-        await user.save();
+        const issued = await issuePasswordCode(User, user.email);
+        if (!issued) return res.status(429).json({ error: 'Please wait a minute before requesting another code' });
         try {
-          await sendResetCodeEmail(user.email, code, 'change');
+          await sendResetCodeEmail(user.email, issued.code, 'change');
         } catch (mailErr) {
           console.error('Change-password email failed:', mailErr);
           return res.status(500).json({ error: 'Failed to send confirmation email' });
@@ -144,25 +134,8 @@ export default async function handler(req, res) {
         if (String(newPassword).length < 8) {
           return res.status(400).json({ error: 'New password must be at least 8 characters long' });
         }
-        if (
-          !user.resetCodeHash ||
-          !user.resetCodeExpires ||
-          user.resetCodeExpires.getTime() < Date.now() ||
-          (user.resetCodeAttempts || 0) >= MAX_RESET_ATTEMPTS
-        ) {
-          return res.status(400).json({ error: 'Invalid or expired code' });
-        }
-        if (!codeMatches(user.resetCodeHash, code)) {
-          user.resetCodeAttempts = (user.resetCodeAttempts || 0) + 1;
-          await user.save();
-          return res.status(400).json({ error: 'Invalid or expired code' });
-        }
-
-        user.passwordHash = await bcrypt.hash(String(newPassword), 10);
-        user.resetCodeHash = null;
-        user.resetCodeExpires = null;
-        user.resetCodeAttempts = 0;
-        await user.save();
+        const changed = await confirmPasswordCode(User, user.email, code, newPassword);
+        if (!changed) return res.status(400).json({ error: 'Invalid or expired code' });
         return res.json({ success: true });
       }
 
@@ -175,7 +148,7 @@ export default async function handler(req, res) {
 
   if (action === 'account') {
     try {
-      const authUser = requireAuth(req, res);
+      const authUser = await requireAuth(req, res);
       if (!authUser) return;
 
       if (req.method !== 'DELETE') {

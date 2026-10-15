@@ -24,6 +24,9 @@ if (!user) {
   process.exit(1);
 }
 user.passwordHash = await bcrypt.hash(NEW_PASSWORD, 10);
-await user.save();
+await User.updateOne({ _id: user._id }, {
+  $set: { passwordHash: user.passwordHash, resetCodeHash: null, resetCodeExpires: null, resetCodeAttempts: 0 },
+  $inc: { sessionVersion: 1 },
+});
 await mongoose.disconnect();
 console.log(`Password reset for "${EMAIL}" — done`);

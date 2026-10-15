@@ -5,7 +5,7 @@ import { requireAuth } from '../../api-lib/auth.js';
 
 export default async function handler(req, res) {
   try {
-    const user = requireAuth(req, res);
+    const user = await requireAuth(req, res);
     if (!user) return;
 
     await connectToDatabase();

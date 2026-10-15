@@ -4,17 +4,9 @@ import User from '../models/User.js';
 import Block from '../models/Block.js';
 import Resume from '../models/Resume.js';
 import { requireAuth } from '../lib/auth.js';
-import {
-  generateResetCode,
-  hashResetCode,
-  codeMatches,
-  resetCodeExpiry,
-  sendResetCodeEmail,
-  MAX_RESET_ATTEMPTS,
-} from '../../api-lib/passwordReset.js';
+import { issuePasswordCode, confirmPasswordCode, sendResetCodeEmail } from '../../api-lib/passwordReset.js';
 
 const router = Router();
-const SALT_ROUNDS = 10;
 
 // POST /api/user/password — email a confirmation code
 router.post('/password', requireAuth, async (req, res) => {
@@ -22,14 +14,11 @@ router.post('/password', requireAuth, async (req, res) => {
     const user = await User.findOne({ email: req.user.email });
     if (!user) return res.status(404).json({ error: 'User not found' });
 
-    const code = generateResetCode();
-    user.resetCodeHash = hashResetCode(code);
-    user.resetCodeExpires = resetCodeExpiry();
-    user.resetCodeAttempts = 0;
-    await user.save();
+    const issued = await issuePasswordCode(User, user.email);
+    if (!issued) return res.status(429).json({ error: 'Please wait a minute before requesting another code' });
 
     try {
-      await sendResetCodeEmail(user.email, code, 'change');
+      await sendResetCodeEmail(user.email, issued.code, 'change');
     } catch (mailErr) {
       console.error('Change-password email failed:', mailErr);
       return res.status(500).json({ error: 'Failed to send confirmation email' });
@@ -56,25 +45,8 @@ router.put('/password', requireAuth, async (req, res) => {
     const user = await User.findOne({ email: req.user.email });
     if (!user) return res.status(404).json({ error: 'User not found' });
 
-    if (
-      !user.resetCodeHash ||
-      !user.resetCodeExpires ||
-      user.resetCodeExpires.getTime() < Date.now() ||
-      (user.resetCodeAttempts || 0) >= MAX_RESET_ATTEMPTS
-    ) {
-      return res.status(400).json({ error: 'Invalid or expired code' });
-    }
-    if (!codeMatches(user.resetCodeHash, code)) {
-      user.resetCodeAttempts = (user.resetCodeAttempts || 0) + 1;
-      await user.save();
-      return res.status(400).json({ error: 'Invalid or expired code' });
-    }
-
-    user.passwordHash = await bcrypt.hash(String(newPassword), SALT_ROUNDS);
-    user.resetCodeHash = null;
-    user.resetCodeExpires = null;
-    user.resetCodeAttempts = 0;
-    await user.save();
+    const changed = await confirmPasswordCode(User, user.email, code, newPassword);
+    if (!changed) return res.status(400).json({ error: 'Invalid or expired code' });
 
     res.json({ success: true });
   } catch (err) {
