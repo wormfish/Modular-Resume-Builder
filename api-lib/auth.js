@@ -3,9 +3,7 @@ import { connectToDatabase } from './db.js';
 import { authenticateSession } from './session.js';
 
 export async function authenticateRequest(req) {
-  if (typeof req.headers.authorization !== 'string' || !req.headers.authorization.startsWith('Bearer ')) return null;
-  await connectToDatabase();
-  return authenticateSession(req, User);
+  return authenticateSession(req, User, connectToDatabase);
 }
 
 export async function requireAuth(req, res) {

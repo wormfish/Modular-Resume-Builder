@@ -38,6 +38,12 @@ test('deleted accounts and re-registrations cannot reuse a signed session', asyn
   assert.equal(await authenticateSession({ headers: {} }, User), null);
 });
 
+test('invalid sessions are rejected before opening a database connection', async () => {
+  const connect = () => { throw new Error('Unexpected database connection'); };
+  assert.equal(await authenticateSession({ headers: { authorization: 'Bearer invalid' } }, {}, connect), null);
+  assert.equal(await authenticateSession({ headers: {} }, {}, connect), null);
+});
+
 test('parallel wrong guesses exhaust exactly five attempts', async () => {
   const User = memoryUser(account());
   const results = await Promise.all(Array.from({ length: 30 }, () =>
