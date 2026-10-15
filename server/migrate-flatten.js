@@ -6,7 +6,7 @@
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { dirname, join, resolve } from 'path';
 import { sanitizePersonalInfo as normalizePersonalInfo } from '../api-lib/personalInfo.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -109,7 +109,7 @@ function flattenBlock(b, userTags) {
   return out;
 }
 
-async function run() {
+export async function run() {
   await mongoose.connect(process.env.MONGODB_URI, { bufferCommands: false });
   const db = mongoose.connection.db;
   log(`connected (${COMMIT ? 'writes ENABLED' : 'preview only — pass --commit to apply'})`);
@@ -214,10 +214,11 @@ async function run() {
   log(COMMIT ? 'DONE — migration applied.' : 'DONE — dry run, nothing written. Re-run with --commit to apply.');
 
   await mongoose.disconnect();
-  process.exit(0);
 }
 
-run().catch((err) => {
-  console.error('Migration failed:', err);
-  process.exit(1);
-});
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  run().catch((err) => {
+    console.error('Migration failed:', err);
+    process.exitCode = 1;
+  });
+}
