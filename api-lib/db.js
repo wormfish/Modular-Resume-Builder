@@ -28,6 +28,12 @@ export async function connectToDatabase() {
     });
   }
 
-  cached.conn = await cached.promise;
+  try {
+    cached.conn = await cached.promise;
+  } catch (err) {
+    // Don't cache a failed attempt; let the next request retry
+    cached.promise = null;
+    throw err;
+  }
   return cached.conn;
 }
