@@ -55,6 +55,22 @@ test('closing while permission is pending stops the late stream without recordin
   assert.deepEqual(statuses, ['requesting']);
 });
 
+test('live speech appends to existing notes without running Whisper again', async (t) => {
+  fakeBrowser(t, async () => ({ getTracks: () => [{ stop() {} }] }));
+  let recognition;
+  globalThis.window.SpeechRecognition = class {
+    constructor() { recognition = this; }
+    start() {}
+    stop() {}
+  };
+  const session = new SpeechSession({ loadModel: async () => async () => { throw new Error('Unexpected fallback'); } });
+  await session.start('Existing notes');
+  const result = [{ transcript: 'Live spoken words' }];
+  result.isFinal = true;
+  recognition.onresult({ resultIndex: 0, results: [result] });
+  assert.equal(await session.stop(), 'Existing notes Live spoken words');
+});
+
 test('closing during Whisper processing suppresses late callbacks', async (t) => {
   fakeBrowser(t, async () => ({ getTracks: () => [{ stop() {} }] }));
   let resolveTranscript;
