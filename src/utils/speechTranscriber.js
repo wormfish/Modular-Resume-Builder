@@ -106,10 +106,15 @@ export class SpeechSession {
     onTranscript,      // (text, isFinal, source) => void
     onStatusChange,    // (status: 'idle' | 'requesting' | 'listening' | 'processing' | 'error', message?: string) => void
     onError,           // (errorMessage: string) => void
+    loadModel = loadWhisperModel,
   } = {}) {
     this.onTranscript = onTranscript;
     this.onStatusChange = onStatusChange;
     this.onError = onError;
+    this.loadModel = loadModel;
+    this.cancelled = false;
+    this.generation = 0;
+    this.initialText = '';
 
     this.active = false;
     this.mediaStream = null;
@@ -128,7 +133,10 @@ export class SpeechSession {
   async start(initialText = '') {
     if (this.active) return;
     this.active = true;
-    this.finalText = initialText ? (initialText.trim() ? `${initialText.trim()} ` : '') : '';
+    this.cancelled = false;
+    const generation = ++this.generation;
+    this.initialText = initialText.trim();
+    this.finalText = '';
     this.interimText = '';
 
     if (this.onStatusChange) {
@@ -138,13 +146,18 @@ export class SpeechSession {
     try {
       // 1. Request microphone access
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        this.mediaStream = await navigator.mediaDevices.getUserMedia({
+        const stream = await navigator.mediaDevices.getUserMedia({
           audio: {
             echoCancellation: true,
             noiseSuppression: true,
             autoGainControl: true,
           },
         });
+        if (!this.active || generation !== this.generation) {
+          stream.getTracks().forEach((track) => track.stop());
+          return;
+        }
+        this.mediaStream = stream;
       }
 
       if (!this.active) {
@@ -162,7 +175,7 @@ export class SpeechSession {
           rec.lang = 'en-US';
 
           rec.onresult = (event) => {
-            if (!this.active) return;
+            if (!this.active || generation !== this.generation) return;
             let currentInterim = '';
             for (let i = event.resultIndex; i < event.results.length; i++) {
               const res = event.results[i];
@@ -174,7 +187,7 @@ export class SpeechSession {
               }
             }
             this.interimText = currentInterim;
-            const fullText = (this.finalText + this.interimText).trim();
+            const fullText = this.transcript();
             if (this.onTranscript) {
               this.onTranscript(fullText, false, 'live');
             }
@@ -207,7 +220,7 @@ export class SpeechSession {
         try {
           const recorder = new MediaRecorder(this.mediaStream);
           recorder.ondataavailable = (e) => {
-            if (e.data && e.data.size > 0) {
+            if (!this.cancelled && e.data && e.data.size > 0) {
               this.audioChunks.push(e.data);
             }
           };
@@ -223,8 +236,9 @@ export class SpeechSession {
       }
 
       // Pre-warm the open source Whisper model in background
-      loadWhisperModel().catch(() => {});
+      this.loadModel().catch(() => {});
     } catch (err) {
+      if (generation !== this.generation) return;
       this.active = false;
       this.cleanup();
       const errMsg =
@@ -246,8 +260,13 @@ export class SpeechSession {
   /**
    * Stop listening and finalize transcription
    */
+  transcript(spoken = (this.finalText + this.interimText).trim()) {
+    return [this.initialText, spoken].filter(Boolean).join(' ').trim();
+  }
+
   async stop() {
-    if (!this.active) return (this.finalText + this.interimText).trim();
+    if (!this.active) return this.transcript();
+    const generation = this.generation;
     this.active = false;
 
     if (this.onStatusChange) {
@@ -272,7 +291,7 @@ export class SpeechSession {
           resolve();
         }
       });
-      recordedAudioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
+      recordedAudioBlob = new Blob(this.audioChunks, { type: this.mediaRecorder?.mimeType || 'audio/webm' });
     }
 
     // Stop microphone tracks
@@ -281,40 +300,44 @@ export class SpeechSession {
       this.mediaStream = null;
     }
 
-    let resultText = (this.finalText + this.interimText).trim();
+    let spoken = (this.finalText + this.interimText).trim();
+    let source = 'live';
+    if (this.cancelled || generation !== this.generation) return this.transcript(spoken);
 
-    // If live text was captured, emit final result
-    if (resultText) {
-      if (this.onTranscript) {
-        this.onTranscript(resultText, true, 'live');
-      }
-    } else if (recordedAudioBlob && recordedAudioBlob.size > 1000) {
-      // If Web Speech didn't produce text, transcribe the audio buffer with open source Whisper
+    // Existing notes do not count as speech from this recording. Use Whisper
+    // whenever the live engine produced no new words, then append the result.
+    if (!spoken && recordedAudioBlob && recordedAudioBlob.size > 1000) {
       try {
-        if (this.onStatusChange) {
-          this.onStatusChange('processing', 'Transcribing with Open-Source Whisper AI...');
-        }
-        const whisper = await loadWhisperModel();
+        this.onStatusChange?.('processing', 'Transcribing with Open-Source Whisper AI...');
+        const whisper = await this.loadModel();
+        if (this.cancelled || generation !== this.generation) return this.transcript(spoken);
         if (whisper) {
           const arrayBuffer = await recordedAudioBlob.arrayBuffer();
           const AudioContextClass = window.AudioContext || window.webkitAudioContext;
           const audioCtx = new AudioContextClass();
-          const decoded = await audioCtx.decodeAudioData(arrayBuffer);
-          const pcmData = resampleTo16k(decoded);
-          await audioCtx.close();
-
-          const whisperResult = await whisper(pcmData);
-          if (whisperResult && whisperResult.text) {
-            resultText = whisperResult.text.trim();
-            if (this.onTranscript) {
-              this.onTranscript(resultText, true, 'whisper');
-            }
+          this.audioContext = audioCtx;
+          let pcmData;
+          try {
+            pcmData = resampleTo16k(await audioCtx.decodeAudioData(arrayBuffer));
+          } finally {
+            await audioCtx.close();
+            this.audioContext = null;
           }
+          if (this.cancelled || generation !== this.generation) return this.transcript(spoken);
+          const result = await whisper(pcmData);
+          spoken = result?.text?.trim() || '';
+          source = 'whisper';
         }
-      } catch (whisperErr) {
-        console.warn('Whisper transcription error:', whisperErr);
+      } catch (err) {
+        if (!this.cancelled) console.warn('Whisper transcription error:', err);
       }
     }
+
+    const resultText = this.transcript(spoken);
+    if (this.cancelled || generation !== this.generation) return resultText;
+    this.finalText = spoken;
+    this.interimText = '';
+    if (resultText) this.onTranscript?.(resultText, true, source);
 
     this.cleanup();
     if (this.onStatusChange) {
@@ -328,6 +351,13 @@ export class SpeechSession {
    * Cleanup any active recording session
    */
   cleanup() {
+    this.active = false;
+    this.cancelled = true;
+    this.generation += 1;
+    if (this.audioContext) {
+      this.audioContext.close().catch(() => {});
+      this.audioContext = null;
+    }
     if (this.recognition) {
       try {
         this.recognition.stop();
