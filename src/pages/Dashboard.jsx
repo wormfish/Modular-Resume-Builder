@@ -7,6 +7,7 @@ import { BLOCK_SCHEMA, DEFAULT_OWNER, SECTION_TYPES, concatDescription } from '.
 import BulletedBody, { isBulletType } from '../components/BulletedBody/BulletedBody';
 import { normalizePersonalInfo } from '../utils/personalInfo';
 import { generateId } from '../utils/id';
+import { readAuthUser, clearAuthentication } from '../utils/session';
 import { prefetchBuilderData, invalidatePrefetch, getOrFetch } from '../utils/prefetch';
 import hackathonTeam from '../assets/hackathon-team.jpg';
 import styles from './Dashboard.module.css';
@@ -83,7 +84,7 @@ function VariantsModal({ parent, variants, getDisplayText, onClose, onEdit, onDu
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const [user, setUser] = useState(() => JSON.parse(localStorage.getItem('auth-user') || 'null'));
+  const [user, setUser] = useState(readAuthUser);
 
   const [resumes, setResumes] = useState([]);
   const [blocks, setBlocks] = useState([]);
@@ -200,20 +201,24 @@ export default function Dashboard() {
       setBlocks(blocksData);
       setTags(tagsData);
     } catch (err) {
+      if (err.status === 401) {
+        clearAuthentication();
+        setUser(null);
+        navigate('/login');
+        return;
+      }
       setError(err.message || 'Failed to load data');
     } finally {
       setLoading(false);
     }
-  }, [user?.email]);
+  }, [user?.email, navigate]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
   const handleLogout = () => {
-    localStorage.removeItem('auth-token');
-    localStorage.removeItem('auth-user');
-    invalidatePrefetch(); // never leak this account's cached data to the next login
+    clearAuthentication();
     setUser(null);
     navigate('/');
   };
@@ -512,6 +517,9 @@ export default function Dashboard() {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || 'Failed to change password');
+    clearAuthentication();
+    setUser(null);
+    navigate('/login');
   };
 
   const deleteAccount = async (password) => {
@@ -522,9 +530,7 @@ export default function Dashboard() {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || 'Failed to delete account');
-    localStorage.removeItem('auth-token');
-    localStorage.removeItem('auth-user');
-    invalidatePrefetch();
+    clearAuthentication();
     setUser(null);
     navigate('/');
   };

@@ -1,9 +1,40 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useId } from 'react';
+import { sectionTitleError } from '../../utils/sections';
 import { BLOCK_SCHEMA, TEMPLATES } from '../../utils/constants';
 import { normalizePersonalInfo, resolveContactUrl } from '../../utils/personalInfo';
 import { DRAG_KEYS, DRAG_SOURCE } from '../../utils/dragKeys';
 import ResumeBlock from './ResumeBlock';
 import styles from './ResumeCanvas.module.css';
+
+function SectionTitleInput({ title, resume, onCommit }) {
+  const [draft, setDraft] = useState(title);
+  const [error, setError] = useState('');
+  const errorId = useId();
+  useEffect(() => { setDraft(title); setError(''); }, [title]);
+  return (
+    <div>
+      <input
+        className={styles.sectionTitle}
+        aria-label={`Section title: ${title}`}
+        value={draft}
+        onChange={(e) => { setDraft(e.target.value); setError(''); }}
+        onBlur={() => {
+          const message = sectionTitleError(resume, title, draft);
+          setError(message);
+          if (!message) onCommit(title, draft.trim());
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') e.currentTarget.blur();
+          if (e.key === 'Escape') { setDraft(title); setError(''); }
+        }}
+        aria-invalid={!!error}
+        aria-describedby={error ? errorId : undefined}
+        data-print-hide
+      />
+      {error && <span id={errorId} role="alert" data-print-hide>{error}</span>}
+    </div>
+  );
+}
 
 export default function ResumeCanvas({
   resume,
@@ -224,12 +255,7 @@ export default function ResumeCanvas({
                       </svg>
                     </div>
                     <h2 className={styles.sectionTitlePrint}>{sectionTitle}</h2>
-                    <input
-                      className={styles.sectionTitle}
-                      value={sectionTitle}
-                      onChange={(e) => onUpdateSectionTitle(sectionTitle, e.target.value, sectionIdx)}
-                      data-print-hide
-                    />
+                    <SectionTitleInput title={sectionTitle} resume={resume} onCommit={onUpdateSectionTitle} />
                   </div>
                   <div className={styles.sectionActions} data-print-hide>
                     <button
