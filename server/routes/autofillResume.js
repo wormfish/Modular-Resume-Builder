@@ -1,3 +1,4 @@
+import { isBlockEligibleForResume } from '../../shared/blocks.js';
 import { Router } from 'express';
 import { requireAuth } from '../lib/auth.js';
 
@@ -52,7 +53,8 @@ router.post('/', requireAuth, async (req, res) => {
 
     const sectionOrder = resume?.sectionOrder || [];
     const sections = resume?.sections || {};
-    const existingBlocks = Array.isArray(blocks) ? blocks : [];
+    const existingBlocks = (Array.isArray(blocks) ? blocks : []).filter((block) =>
+      isBlockEligibleForResume(block, resume?.id));
     const selectedKeywords = Array.isArray(keywords) ? keywords : [];
 
     // Existing block ids the AI may reference

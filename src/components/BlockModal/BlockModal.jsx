@@ -26,6 +26,7 @@ export default function BlockModal({
   const [recordingStatus, setRecordingStatus] = useState('idle');
   const [recordingMessage, setRecordingMessage] = useState('');
   const speechSessionRef = useRef(null);
+  const voiceBusy = recordingStatus === 'requesting' || recordingStatus === 'processing';
 
   const schema = BLOCK_SCHEMA[tempBlock.type];
   const tagIds = tempBlock.tagIds || [];
@@ -75,22 +76,23 @@ export default function BlockModal({
     }
   };
 
-  const handleCloseAutoParse = async () => {
-    if (speechSessionRef.current) {
-      await speechSessionRef.current.stop();
-      speechSessionRef.current = null;
-    }
+  const handleCloseAutoParse = () => {
+    speechSessionRef.current?.cleanup();
+    speechSessionRef.current = null;
     setIsRecording(false);
+    setRecordingStatus('idle');
     setAutoParseOpen(false);
   };
 
   const handleAutoParseSubmit = async () => {
+    let finalText = autoParseText;
     if (speechSessionRef.current) {
-      await speechSessionRef.current.stop();
+      finalText = await speechSessionRef.current.stop();
+      setAutoParseText(finalText);
       speechSessionRef.current = null;
       setIsRecording(false);
     }
-    if (!autoParseText.trim()) {
+    if (!finalText.trim()) {
       setAutoParseError('Please type or speak some notes to parse.');
       return;
     }
@@ -105,7 +107,7 @@ export default function BlockModal({
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({
-          text: autoParseText.trim(),
+          text: finalText.trim(),
           targetType: tempBlock.type,
           currentBlock: tempBlock,
           clientDate: new Date().toISOString(),
@@ -634,7 +636,7 @@ export default function BlockModal({
                     <span className={styles.starPill}><strong>R</strong>esult</span>
                   </div>
                   <p className={styles.starGuideText}>
-                    Type, paste, or speak out what you went through (your role, company, challenges, actions taken, and measurable results). The AI will structure it into impactful STAR-method bullet points with quantified results.
+                    Type, paste, or speak out what you went through (your role, company, challenges, actions taken, and measurable results). The AI will structure it into STAR-method bullet points using only the facts and results you provide.
                   </p>
                 </div>
 
@@ -645,7 +647,7 @@ export default function BlockModal({
                       type="button"
                       className={`${styles.micBtn} ${isRecording ? styles.micBtnActive : ''}`}
                       onClick={handleToggleVoice}
-                      disabled={isAutoParsing}
+                      disabled={isAutoParsing || voiceBusy}
                       title={
                         isRecording
                           ? 'Click to stop voice dictation'
@@ -726,7 +728,7 @@ export default function BlockModal({
                   type="button"
                   className={styles.autoParseSubmitBtn}
                   onClick={handleAutoParseSubmit}
-                  disabled={isAutoParsing || !autoParseText.trim()}
+                  disabled={isAutoParsing || voiceBusy || (!isRecording && !autoParseText.trim())}
                 >
                   {isAutoParsing ? (
                     <>

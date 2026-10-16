@@ -1,7 +1,52 @@
 import crypto from 'crypto';
+import bcrypt from 'bcrypt';
 
 const CODE_TTL_MS = 15 * 60 * 1000;
 export const MAX_RESET_ATTEMPTS = 5;
+export const RESET_CODE_COOLDOWN_MS = 60 * 1000;
+
+export async function issuePasswordCode(User, email) {
+  const now = new Date();
+  const code = generateResetCode();
+  const user = await User.findOneAndUpdate({
+    email,
+    $or: [
+      { resetCodeRequestedAt: null },
+      { resetCodeRequestedAt: { $lte: new Date(now.getTime() - RESET_CODE_COOLDOWN_MS) } },
+    ],
+  }, { $set: {
+    resetCodeHash: hashResetCode(code),
+    resetCodeExpires: resetCodeExpiry(),
+    resetCodeAttempts: 0,
+    resetCodeRequestedAt: now,
+  } }, { returnDocument: 'after' });
+  return user ? { user, code } : null;
+}
+
+export async function confirmPasswordCode(User, email, code, newPassword) {
+  // Claim an attempt atomically before comparing it. Parallel guesses cannot
+  // share one attempt slot or reset each other's counters.
+  const user = await User.findOneAndUpdate({
+    email,
+    resetCodeHash: { $ne: null },
+    resetCodeExpires: { $gt: new Date() },
+    resetCodeAttempts: { $lt: MAX_RESET_ATTEMPTS },
+  }, { $inc: { resetCodeAttempts: 1 } }, { returnDocument: 'after' });
+  if (!user || !codeMatches(user.resetCodeHash, code)) return false;
+
+  const passwordHash = await bcrypt.hash(String(newPassword), 10);
+  // Consume exactly the code we checked; a concurrent resend or confirmation
+  // must not let this request update the password with a stale code.
+  const updated = await User.findOneAndUpdate({
+    _id: user._id,
+    resetCodeHash: user.resetCodeHash,
+    resetCodeExpires: { $gt: new Date() },
+  }, {
+    $set: { passwordHash, resetCodeHash: null, resetCodeExpires: null, resetCodeAttempts: 0 },
+    $inc: { sessionVersion: 1 },
+  }, { returnDocument: 'after' });
+  return !!updated;
+}
 
 export function generateResetCode() {
   return String(crypto.randomInt(0, 1000000)).padStart(6, '0');

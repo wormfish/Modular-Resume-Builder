@@ -4,86 +4,15 @@ import User from '../../api-lib/models/User.js';
 import Block from '../../api-lib/models/Block.js';
 import Resume from '../../api-lib/models/Resume.js';
 import { requireAuth } from '../../api-lib/auth.js';
-import {
-  generateResetCode,
-  hashResetCode,
-  codeMatches,
-  resetCodeExpiry,
-  sendResetCodeEmail,
-  MAX_RESET_ATTEMPTS,
-} from '../../api-lib/passwordReset.js';
-
-const DEFAULT_SUGGESTIONS = ['Email', 'Phone', 'LinkedIn', 'GitHub', 'Portfolio', 'Website', 'Location', 'Twitter'];
-
-// Sanitize personal-info fields, preserving order in fields array with a minimum length of 3.
-function sanitize(body) {
-  if (!body || typeof body !== 'object') {
-    return {
-      name: '',
-      email: '',
-      phone: '',
-      linkedin: '',
-      fields: [
-        { id: 'f-email', label: 'Email', value: '' },
-        { id: 'f-phone', label: 'Phone', value: '' },
-        { id: 'f-linkedin', label: 'LinkedIn', value: '' },
-      ],
-    };
-  }
-
-  const name = typeof body.name === 'string' ? body.name.trim() : '';
-  let fields = [];
-
-  if (Array.isArray(body.fields)) {
-    fields = body.fields
-      .filter((f) => f && typeof f === 'object')
-      .map((f, idx) => ({
-        id: typeof f.id === 'string' && f.id ? f.id : `f-${idx + 1}-${Date.now()}`,
-        label: typeof f.label === 'string' && f.label.trim() ? f.label.trim() : `Field ${idx + 1}`,
-        value: typeof f.value === 'string' ? f.value.trim() : '',
-      }));
-  } else {
-    const thirdVal = typeof body.linkedin === 'string' && body.linkedin ? body.linkedin.trim() : (typeof body.location === 'string' && body.location ? body.location.trim() : '');
-    const thirdLabel = typeof body.linkedin === 'string' && body.linkedin ? 'LinkedIn' : (typeof body.location === 'string' && body.location ? 'Location' : 'LinkedIn');
-    fields = [
-      { id: 'f-email', label: 'Email', value: typeof body.email === 'string' ? body.email.trim() : '' },
-      { id: 'f-phone', label: 'Phone', value: typeof body.phone === 'string' ? body.phone.trim() : '' },
-      { id: 'f-linkedin', label: thirdLabel, value: thirdVal },
-    ];
-  }
-
-  // Ensure minimum length of 3
-  while (fields.length < 3) {
-    const existing = new Set(fields.map((f) => f.label.toLowerCase()));
-    const nextLabel =
-      DEFAULT_SUGGESTIONS.find((l) => !existing.has(l.toLowerCase())) || `Field ${fields.length + 1}`;
-    fields.push({
-      id: `f-${fields.length + 1}-${Date.now()}`,
-      label: nextLabel,
-      value: '',
-    });
-  }
-
-  const email = fields.find((f) => f.label.toLowerCase() === 'email')?.value || fields[0]?.value || '';
-  const phone = fields.find((f) => f.label.toLowerCase() === 'phone')?.value || fields[1]?.value || '';
-  const linkedin =
-    fields.find((f) => f.label.toLowerCase() === 'linkedin')?.value || fields[2]?.value || '';
-
-  return {
-    name,
-    email,
-    phone,
-    linkedin,
-    fields,
-  };
-}
+import { sanitizePersonalInfo as sanitize } from '../../api-lib/personalInfo.js';
+import { issuePasswordCode, confirmPasswordCode, sendResetCodeEmail } from '../../api-lib/passwordReset.js';
 
 export default async function handler(req, res) {
   const { action } = req.query;
 
   if (action === 'defaults') {
     try {
-      const authUser = requireAuth(req, res);
+      const authUser = await requireAuth(req, res);
       if (!authUser) return;
 
       if (req.method !== 'GET' && req.method !== 'PUT') {
@@ -112,7 +41,7 @@ export default async function handler(req, res) {
 
   if (action === 'tags') {
     try {
-      const user = requireAuth(req, res);
+      const user = await requireAuth(req, res);
       if (!user) return;
 
       await connectToDatabase();
@@ -175,7 +104,7 @@ export default async function handler(req, res) {
 
   if (action === 'password') {
     try {
-      const authUser = requireAuth(req, res);
+      const authUser = await requireAuth(req, res);
       if (!authUser) return;
 
       await connectToDatabase();
@@ -185,13 +114,10 @@ export default async function handler(req, res) {
 
       // POST — email a confirmation code to the account owner.
       if (req.method === 'POST') {
-        const code = generateResetCode();
-        user.resetCodeHash = hashResetCode(code);
-        user.resetCodeExpires = resetCodeExpiry();
-        user.resetCodeAttempts = 0;
-        await user.save();
+        const issued = await issuePasswordCode(User, user.email);
+        if (!issued) return res.status(429).json({ error: 'Please wait a minute before requesting another code' });
         try {
-          await sendResetCodeEmail(user.email, code, 'change');
+          await sendResetCodeEmail(user.email, issued.code, 'change');
         } catch (mailErr) {
           console.error('Change-password email failed:', mailErr);
           return res.status(500).json({ error: 'Failed to send confirmation email' });
@@ -208,25 +134,8 @@ export default async function handler(req, res) {
         if (String(newPassword).length < 8) {
           return res.status(400).json({ error: 'New password must be at least 8 characters long' });
         }
-        if (
-          !user.resetCodeHash ||
-          !user.resetCodeExpires ||
-          user.resetCodeExpires.getTime() < Date.now() ||
-          (user.resetCodeAttempts || 0) >= MAX_RESET_ATTEMPTS
-        ) {
-          return res.status(400).json({ error: 'Invalid or expired code' });
-        }
-        if (!codeMatches(user.resetCodeHash, code)) {
-          user.resetCodeAttempts = (user.resetCodeAttempts || 0) + 1;
-          await user.save();
-          return res.status(400).json({ error: 'Invalid or expired code' });
-        }
-
-        user.passwordHash = await bcrypt.hash(String(newPassword), 10);
-        user.resetCodeHash = null;
-        user.resetCodeExpires = null;
-        user.resetCodeAttempts = 0;
-        await user.save();
+        const changed = await confirmPasswordCode(User, user.email, code, newPassword);
+        if (!changed) return res.status(400).json({ error: 'Invalid or expired code' });
         return res.json({ success: true });
       }
 
@@ -239,7 +148,7 @@ export default async function handler(req, res) {
 
   if (action === 'account') {
     try {
-      const authUser = requireAuth(req, res);
+      const authUser = await requireAuth(req, res);
       if (!authUser) return;
 
       if (req.method !== 'DELETE') {

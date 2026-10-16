@@ -1,11 +1,13 @@
-// One-shot DB migration: purge test accounts, flatten blocks, rename
+// One-shot DB migration: flatten blocks, rename
 // jobTypes* -> tags*, resumeId -> variantIn.
 //   Preview (no writes):  node server/migrate-flatten.js
 //   Apply:                node server/migrate-flatten.js --commit
+//   Also purge allowlisted test accounts: add --purge-test-accounts
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { dirname, join, resolve } from 'path';
+import { sanitizePersonalInfo as normalizePersonalInfo } from '../api-lib/personalInfo.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 dotenv.config({ path: join(__dirname, '.env') });
@@ -28,52 +30,11 @@ const PURGE_EMAILS = new Set([
   'kys@kys.kys',
 ]);
 
-const DEFAULT_TAG_NAMES = ['Email', 'Phone', 'LinkedIn', 'GitHub', 'Portfolio', 'Website', 'Location', 'Twitter'];
-
 // Keys that are block metadata (never content), so flattening can strip them.
 const BLOCK_META = new Set([
   '_id', '__v', 'createdAt', 'updatedAt', 'owner', 'content', 'type',
   'jobTypeIds', 'jobTypes', 'name', 'resumeId', 'variantOf', 'variantIn', 'tagIds',
 ]);
-
-// Normalize any personal-info object to the canonical shape:
-// { name, email, phone, linkedin, fields:[{id,label,value}] } with >=3 fields.
-function normalizePersonalInfo(pi) {
-  const src = pi && typeof pi === 'object' ? pi : {};
-  const name = typeof src.name === 'string' ? src.name.trim() : '';
-  let fields = [];
-
-  if (Array.isArray(src.fields)) {
-    fields = src.fields
-      .filter((f) => f && typeof f === 'object')
-      .map((f, idx) => ({
-        id: typeof f.id === 'string' && f.id ? f.id : `f-${idx + 1}-${Date.now()}`,
-        label: typeof f.label === 'string' && f.label.trim() ? f.label.trim() : `Field ${idx + 1}`,
-        value: typeof f.value === 'string' ? f.value.trim() : '',
-      }));
-  } else {
-    const thirdVal = (typeof src.linkedin === 'string' && src.linkedin) ? src.linkedin.trim()
-      : (typeof src.location === 'string' ? src.location.trim() : '');
-    const thirdLabel = (typeof src.linkedin === 'string' && src.linkedin) ? 'LinkedIn'
-      : ((typeof src.location === 'string' && src.location) ? 'Location' : 'LinkedIn');
-    fields = [
-      { id: 'f-email', label: 'Email', value: typeof src.email === 'string' ? src.email.trim() : '' },
-      { id: 'f-phone', label: 'Phone', value: typeof src.phone === 'string' ? src.phone.trim() : '' },
-      { id: 'f-linkedin', label: thirdLabel, value: thirdVal },
-    ];
-  }
-
-  while (fields.length < 3) {
-    const existing = new Set(fields.map((f) => f.label.toLowerCase()));
-    const next = DEFAULT_TAG_NAMES.find((l) => !existing.has(l.toLowerCase())) || `Field ${fields.length + 1}`;
-    fields.push({ id: `f-${fields.length + 1}-${Date.now()}`, label: next, value: '' });
-  }
-
-  const email = fields.find((f) => f.label.toLowerCase() === 'email')?.value || fields[0]?.value || '';
-  const phone = fields.find((f) => f.label.toLowerCase() === 'phone')?.value || fields[1]?.value || '';
-  const linkedin = fields.find((f) => f.label.toLowerCase() === 'linkedin')?.value || fields[2]?.value || '';
-  return { name, email, phone, linkedin, fields };
-}
 
 // Move a project URL stored in `location` into `link` (legacy shape).
 function moveProjectLink(block) {
@@ -148,7 +109,7 @@ function flattenBlock(b, userTags) {
   return out;
 }
 
-async function run() {
+export async function run() {
   await mongoose.connect(process.env.MONGODB_URI, { bufferCommands: false });
   const db = mongoose.connection.db;
   log(`connected (${COMMIT ? 'writes ENABLED' : 'preview only — pass --commit to apply'})`);
@@ -157,9 +118,9 @@ async function run() {
   let totalChanged = 0;
 
   // ── Phase 0: purge ──────────────────────────────────────────────────────────
-  const toPurge = await col('users').find({ email: { $regex: 'test', $options: 'i' } }).toArray();
-  const extra = await col('users').find({ email: { $in: ['phat@ss.com', 'kys@kys.kys'] } }).toArray();
-  const purgeUsers = [...toPurge, extra.filter((u) => !toPurge.some((t) => t.email === u.email))].flat();
+  const purgeUsers = process.argv.includes('--purge-test-accounts')
+    ? await col('users').find({ email: { $in: [...PURGE_EMAILS] } }).toArray()
+    : [];
   const purgeEmails = [...new Set(purgeUsers.map((u) => u.email.toLowerCase()))];
   log(`purging ${purgeEmails.length} accounts: ${purgeEmails.join(', ')}`);
   if (purgeEmails.length) {
@@ -253,10 +214,11 @@ async function run() {
   log(COMMIT ? 'DONE — migration applied.' : 'DONE — dry run, nothing written. Re-run with --commit to apply.');
 
   await mongoose.disconnect();
-  process.exit(0);
 }
 
-run().catch((err) => {
-  console.error('Migration failed:', err);
-  process.exit(1);
-});
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  run().catch((err) => {
+    console.error('Migration failed:', err);
+    process.exitCode = 1;
+  });
+}

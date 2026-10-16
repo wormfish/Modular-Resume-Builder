@@ -1,12 +1,12 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useLocalStorage } from './hooks/useLocalStorage';
+import { useAccountDraft } from './hooks/useAccountDraft';
+import { readAuthUser, clearAuthentication } from './utils/session';
+import { renameSection, moveBlockToTypeSection } from './utils/sections';
+import { copyBlock, isBlockEligibleForResume } from '../shared/blocks';
 import { useExportPdf } from './hooks/useExportPdf';
 import {
-  INITIAL_BLOCKS,
-  INITIAL_RESUME,
   BLANK_RESUME,
-  BLANK_BLOCKS,
   SECTION_NAME_SUGGESTIONS,
   DEFAULT_OWNER,
   BLOCK_SCHEMA,
@@ -29,10 +29,10 @@ export default function App() {
   const [searchParams, setSearchParams] = useSearchParams();
   // Read once: auth data only changes on routes that unmount this component.
   // A stable reference keeps the redirect effect from re-running every render.
-  const user = useMemo(() => JSON.parse(localStorage.getItem('auth-user') || 'null'), []);
+  const user = useMemo(readAuthUser, []);
 
-  const [blocks, setBlocks, resetBlocks] = useLocalStorage('resume-builder-blocks', INITIAL_BLOCKS);
-  const [resume, setResume, resetResume] = useLocalStorage('resume-builder-canvas', INITIAL_RESUME);
+  const [blocks, setBlocks] = useAccountDraft(user, 'blocks', []);
+  const [resume, setResume] = useAccountDraft(user, 'canvas', { ...BLANK_RESUME, owner: user?.email || '' });
   // tags is an object: { jt1: "Software Development", ... }
   const [tags, setTags] = useState({});
 
@@ -138,9 +138,7 @@ export default function App() {
         // auth-user is still present. Clear the session and send the user to
         // login so they aren't stuck behind the redirect gate with a dead token.
         if (err.status === 401) {
-          localStorage.removeItem('auth-token');
-          localStorage.removeItem('auth-user');
-          invalidatePrefetch(); // drop cached data from the dead session
+          clearAuthentication();
           navigate('/login');
           return;
         }
@@ -198,6 +196,7 @@ export default function App() {
     // New resumes start from the account's saved personal details (if any).
     const blankWithDefaults = {
       ...BLANK_RESUME,
+      owner: user.email,
       personalInfo: normalizePersonalInfo({ ...BLANK_RESUME.personalInfo, ...defaultPersonalInfo }),
     };
     setResume(
@@ -299,34 +298,7 @@ export default function App() {
         next = { ...next, hiddenSections: [] };
       }
 
-      // Migrate separate personalInfo localStorage key into resume
-      if (!next.personalInfo) {
-        try {
-          const stored = localStorage.getItem('resume-builder-personal');
-          const oldInfo = stored ? JSON.parse(stored) : {};
-          // Handle old `contact` string format
-          if (oldInfo.contact) {
-            const parts = oldInfo.contact.split(' · ').map((s) => s.trim());
-            next.personalInfo = {
-              name: oldInfo.name || '',
-              email: oldInfo.email || parts[0] || '',
-              phone: oldInfo.phone || parts[2] || parts[1] || '',
-              location: oldInfo.location || (parts[2] ? parts[1] : ''),
-            };
-          } else {
-            next.personalInfo = {
-              name: oldInfo.name || '',
-              email: oldInfo.email || '',
-              phone: oldInfo.phone || '',
-              location: oldInfo.location || '',
-            };
-          }
-          // Clean up old localStorage key
-          localStorage.removeItem('resume-builder-personal');
-        } catch {
-          next.personalInfo = { name: '', email: '', phone: '', location: '' };
-        }
-      }
+      if (!next.personalInfo) next = { ...next, personalInfo: {} };
 
       // Ensure personalInfo is normalized with fields list
       next.personalInfo = normalizePersonalInfo(next.personalInfo);
@@ -390,20 +362,7 @@ export default function App() {
         const prevBlock = blocks.find((b) => b.id === editingBlockId);
         const targetTitle = BLOCK_SCHEMA[tempBlock.type]?.label;
         if (prevBlock && prevBlock.type !== tempBlock.type && targetTitle) {
-          setResume((prev) => {
-            const sections = {};
-            for (const [title, ids] of Object.entries(prev.sections || {})) {
-              sections[title] = ids.filter((id) => id !== editingBlockId);
-            }
-            const alreadyInTarget = (prev.sections?.[targetTitle] || []).includes(editingBlockId);
-            if (!alreadyInTarget) {
-              sections[targetTitle] = [...(sections[targetTitle] || []), editingBlockId];
-            }
-            const sectionOrder = (prev.sectionOrder || []).includes(targetTitle)
-              ? prev.sectionOrder
-              : [...(prev.sectionOrder || []), targetTitle];
-            return { ...prev, sections, sectionOrder };
-          });
+          setResume((prev) => moveBlockToTypeSection(prev, editingBlockId, targetTitle));
         }
       }
 
@@ -543,20 +502,7 @@ export default function App() {
     const variantIn = source.variantIn || null;
     const variantOf = variantIn ? source.variantOf || source.id : null;
 
-    // Strip ids + server metadata that may ride along on flattened blocks,
-    // leaving only the actual content fields.
-    const META_KEYS = new Set(['id', '_id', 'owner', '__v', 'createdAt', 'updatedAt', 'content', 'type', 'tagIds', 'variantIn', 'variantOf']);
-    const contentFields = Object.fromEntries(
-      Object.entries(source).filter(([k]) => !META_KEYS.has(k))
-    );
-    const blockData = {
-      ...contentFields,
-      id: newId,
-      owner,
-      type: source.type,
-      tagIds: source.tagIds || [],
-      ...(variantIn ? { variantIn, variantOf } : {}),
-    };
+    const blockData = copyBlock(source, newId, owner, { variantIn, variantOf });
 
     try {
       const res = await fetch('/api/blocks', {
@@ -722,40 +668,8 @@ export default function App() {
     });
   }, [setResume]);
 
-  const updateSectionTitle = useCallback((oldTitle, newTitle, sectionIdx) => {
-    if (oldTitle === newTitle) return;
-    setResume((prev) => {
-      const order = [...(prev.sectionOrder || [])];
-      const targetIdx = typeof sectionIdx === 'number' ? sectionIdx : order.indexOf(oldTitle);
-      const actualOldTitle = targetIdx >= 0 && order[targetIdx] !== undefined ? order[targetIdx] : oldTitle;
-
-      if (targetIdx >= 0 && targetIdx < order.length) {
-        order[targetIdx] = newTitle;
-      } else {
-        const idx = order.indexOf(oldTitle);
-        if (idx >= 0) order[idx] = newTitle;
-      }
-
-      const newSections = {};
-      let matched = false;
-      for (const [key, val] of Object.entries(prev.sections || {})) {
-        if (key === actualOldTitle && !matched) {
-          newSections[newTitle] = val;
-          matched = true;
-        } else {
-          newSections[key] = val;
-        }
-      }
-      if (!matched) {
-        newSections[newTitle] = prev.sections?.[actualOldTitle] || [];
-      }
-      return {
-        ...prev,
-        sectionOrder: order,
-        sections: newSections,
-        hiddenSections: (prev.hiddenSections || []).map((t) => (t === actualOldTitle ? newTitle : t)),
-      };
-    });
+  const updateSectionTitle = useCallback((oldTitle, newTitle) => {
+    setResume((prev) => renameSection(prev, oldTitle, newTitle));
   }, [setResume]);
 
   const reorderSections = useCallback((fromIndex, toIndex) => {
@@ -857,7 +771,8 @@ export default function App() {
     const owner = user?.email || DEFAULT_OWNER;
 
     // Slim view of the block library for the AI (strip Mongo/internal fields)
-    const blockSummaries = blocks.map((b) => {
+    const resumeId = resume._id || resume.id;
+    const blockSummaries = blocks.filter((b) => isBlockEligibleForResume(b, resumeId)).map((b) => {
       const { id, type, _id, owner: _owner, tagIds, ...fields } = b;
       return { id, type, ...fields };
     });
@@ -871,7 +786,7 @@ export default function App() {
       body: JSON.stringify({
         jobDescription,
         keywords,
-        resume: { sectionOrder: resume.sectionOrder, sections: resume.sections },
+        resume: { id: resumeId, sectionOrder: resume.sectionOrder, sections: resume.sections },
         blocks: blockSummaries,
       }),
     });
@@ -941,7 +856,7 @@ export default function App() {
       message += ` ${emptySections.join(', ')} had no matching blocks — drag some in from the library.`;
     }
     return message;
-  }, [blocks, resume.sectionOrder, resume.sections, user?.email, setBlocks, setResume]);
+  }, [blocks, resume, user?.email, setBlocks, setResume]);
 
   // ---------- Drag and Drop ----------
 

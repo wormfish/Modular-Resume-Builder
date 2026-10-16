@@ -13,6 +13,8 @@ const userSchema = new mongoose.Schema(
     // Saved personal details used to prefill new resumes ("Save as Default" in
     // the builder, editable from the Dashboard account modal). Empty until set.
     defaultPersonalInfo: { type: mongoose.Schema.Types.Mixed, default: () => ({ name: '', fields: [] }) },
+    sessionVersion: { type: Number, default: 0 },
+    resetCodeRequestedAt: { type: Date, default: null },
     resetCodeHash: { type: String, default: null },
     resetCodeExpires: { type: Date, default: null },
     resetCodeAttempts: { type: Number, default: 0 },

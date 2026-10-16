@@ -2,14 +2,7 @@ import { Router } from 'express';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
-import {
-  generateResetCode,
-  hashResetCode,
-  codeMatches,
-  resetCodeExpiry,
-  sendResetCodeEmail,
-  MAX_RESET_ATTEMPTS,
-} from '../../api-lib/passwordReset.js';
+import { issuePasswordCode, confirmPasswordCode, sendResetCodeEmail } from '../../api-lib/passwordReset.js';
 
 const router = Router();
 const SALT_ROUNDS = 10;
@@ -41,7 +34,7 @@ router.post('/register', async (req, res) => {
       defaultPersonalInfo: { name: cleanName },
     });
 
-    const token = jwt.sign({ userId: user._id, email: user.email }, process.env.JWT_SECRET, {
+    const token = jwt.sign({ userId: user._id, email: user.email, sessionVersion: user.sessionVersion ?? 0 }, process.env.JWT_SECRET, {
       expiresIn: '7d',
     });
 
@@ -70,7 +63,7 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
-    const token = jwt.sign({ userId: user._id, email: user.email }, process.env.JWT_SECRET, {
+    const token = jwt.sign({ userId: user._id, email: user.email, sessionVersion: user.sessionVersion ?? 0 }, process.env.JWT_SECRET, {
       expiresIn: '7d',
     });
 
@@ -87,15 +80,10 @@ router.post('/forgot-password', async (req, res) => {
     const { email } = req.body || {};
     if (!email) return res.status(400).json({ error: 'Email is required' });
 
-    const user = await User.findOne({ email: String(email).toLowerCase().trim() });
-    if (user) {
-      const code = generateResetCode();
-      user.resetCodeHash = hashResetCode(code);
-      user.resetCodeExpires = resetCodeExpiry();
-      user.resetCodeAttempts = 0;
-      await user.save();
+    const issued = await issuePasswordCode(User, String(email).toLowerCase().trim());
+    if (issued) {
       try {
-        await sendResetCodeEmail(user.email, code, 'reset');
+        await sendResetCodeEmail(issued.user.email, issued.code, 'reset');
       } catch (mailErr) {
         console.error('Reset email failed:', mailErr);
       }
@@ -119,27 +107,10 @@ router.post('/reset-password', async (req, res) => {
       return res.status(400).json({ error: 'Password must be at least 8 characters long' });
     }
 
-    const user = await User.findOne({ email: String(email).toLowerCase().trim() });
-    if (!user || !user.resetCodeHash || !user.resetCodeExpires) {
+    const changed = await confirmPasswordCode(User, String(email).toLowerCase().trim(), code, newPassword);
+    if (!changed) {
       return res.status(400).json({ error: 'Invalid or expired code' });
     }
-    if (
-      user.resetCodeExpires.getTime() < Date.now() ||
-      (user.resetCodeAttempts || 0) >= MAX_RESET_ATTEMPTS
-    ) {
-      return res.status(400).json({ error: 'Invalid or expired code' });
-    }
-    if (!codeMatches(user.resetCodeHash, code)) {
-      user.resetCodeAttempts = (user.resetCodeAttempts || 0) + 1;
-      await user.save();
-      return res.status(400).json({ error: 'Invalid or expired code' });
-    }
-
-    user.passwordHash = await bcrypt.hash(String(newPassword), SALT_ROUNDS);
-    user.resetCodeHash = null;
-    user.resetCodeExpires = null;
-    user.resetCodeAttempts = 0;
-    await user.save();
 
     res.json({ success: true });
   } catch (err) {

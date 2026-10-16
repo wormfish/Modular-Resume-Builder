@@ -7,6 +7,8 @@ import { BLOCK_SCHEMA, DEFAULT_OWNER, SECTION_TYPES, concatDescription } from '.
 import BulletedBody, { isBulletType } from '../components/BulletedBody/BulletedBody';
 import { normalizePersonalInfo } from '../utils/personalInfo';
 import { generateId } from '../utils/id';
+import { copyBlock } from '../../shared/blocks';
+import { readAuthUser, clearAuthentication } from '../utils/session';
 import { prefetchBuilderData, invalidatePrefetch, getOrFetch } from '../utils/prefetch';
 import hackathonTeam from '../assets/hackathon-team.jpg';
 import styles from './Dashboard.module.css';
@@ -83,7 +85,7 @@ function VariantsModal({ parent, variants, getDisplayText, onClose, onEdit, onDu
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const [user, setUser] = useState(() => JSON.parse(localStorage.getItem('auth-user') || 'null'));
+  const [user, setUser] = useState(readAuthUser);
 
   const [resumes, setResumes] = useState([]);
   const [blocks, setBlocks] = useState([]);
@@ -200,20 +202,24 @@ export default function Dashboard() {
       setBlocks(blocksData);
       setTags(tagsData);
     } catch (err) {
+      if (err.status === 401) {
+        clearAuthentication();
+        setUser(null);
+        navigate('/login');
+        return;
+      }
       setError(err.message || 'Failed to load data');
     } finally {
       setLoading(false);
     }
-  }, [user?.email]);
+  }, [user?.email, navigate]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
   const handleLogout = () => {
-    localStorage.removeItem('auth-token');
-    localStorage.removeItem('auth-user');
-    invalidatePrefetch(); // never leak this account's cached data to the next login
+    clearAuthentication();
     setUser(null);
     navigate('/');
   };
@@ -278,18 +284,8 @@ export default function Dashboard() {
     const owner = user?.email || DEFAULT_OWNER;
     const newId = generateId();
 
-    // Variants copy their resume scope and lineage; library blocks stay global.
-    const blockData = {
-      id: newId,
-      owner,
-      type: block.type,
-      name: block.name || '',
-      tagIds: block.tagIds || [],
-      ...(block.variantIn
-        ? { variantIn: block.variantIn, variantOf: block.variantOf || block._id }
-        : {}),
-      ...(block.content || {}),
-    };
+    const blockData = copyBlock(block, newId, owner, block.variantIn
+      ? { variantIn: block.variantIn, variantOf: block.variantOf || block._id } : {});
 
     try {
       const res = await fetch('/api/blocks', {
@@ -512,6 +508,9 @@ export default function Dashboard() {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || 'Failed to change password');
+    clearAuthentication();
+    setUser(null);
+    navigate('/login');
   };
 
   const deleteAccount = async (password) => {
@@ -522,9 +521,7 @@ export default function Dashboard() {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || 'Failed to delete account');
-    localStorage.removeItem('auth-token');
-    localStorage.removeItem('auth-user');
-    invalidatePrefetch();
+    clearAuthentication();
     setUser(null);
     navigate('/');
   };
@@ -622,25 +619,17 @@ export default function Dashboard() {
 
   const copyResume = async (resume) => {
     try {
-      const owner = user?.email || DEFAULT_OWNER;
-      const newResume = {
-        ...resume,
-        _id: undefined, // Let MongoDB generate a new ID
-        id: `r-${Date.now()}`,
-        owner,
-        title: `${resume.title} (Copy)`,
-      };
-
       const res = await fetch('/api/resumes', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
           ...getAuthHeaders()
         },
-        body: JSON.stringify(newResume),
+        body: JSON.stringify({ copyFrom: resume._id || resume.id }),
       });
 
       if (!res.ok) throw new Error('Failed to copy resume');
+      invalidatePrefetch('blocks');
       invalidatePrefetch('resumes');
       await fetchData();
     } catch (err) {
@@ -658,6 +647,7 @@ export default function Dashboard() {
       });
 
       if (!res.ok) throw new Error('Failed to delete resume');
+      invalidatePrefetch('blocks');
       invalidatePrefetch('resumes');
       await fetchData();
     } catch (err) {

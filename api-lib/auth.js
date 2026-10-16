@@ -1,28 +1,23 @@
-import jwt from 'jsonwebtoken';
+import User from './models/User.js';
+import { connectToDatabase } from './db.js';
+import { authenticateSession } from './session.js';
 
-const getJwtSecret = () => process.env.JWT_SECRET;
-
-export function authenticateRequest(req) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return null;
-  }
-
-  const token = authHeader.substring(7);
-  try {
-    const decoded = jwt.verify(token, getJwtSecret());
-    return decoded; // { userId, email, iat, exp }
-  } catch (err) {
-    return null;
-  }
+export async function authenticateRequest(req) {
+  return authenticateSession(req, User, connectToDatabase);
 }
 
-export function requireAuth(req, res) {
-  const user = authenticateRequest(req);
-  if (!user) {
-    res.status(401).json({ error: 'Authentication required' });
+export async function requireAuth(req, res) {
+  try {
+    const user = await authenticateRequest(req);
+    if (!user) {
+      res.status(401).json({ error: 'Authentication required' });
+      return null;
+    }
+    req.user = user;
+    return user;
+  } catch (err) {
+    console.error('Session lookup failed:', err);
+    res.status(503).json({ error: 'Authentication temporarily unavailable' });
     return null;
   }
-  req.user = user;
-  return user;
 }

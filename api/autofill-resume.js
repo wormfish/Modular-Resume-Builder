@@ -1,3 +1,4 @@
+import { isBlockEligibleForResume } from '../shared/blocks.js';
 import { requireAuth } from '../api-lib/auth.js';
 
 const DEFAULT_SECTIONS = ['Summary', 'Experience', 'Education', 'Skills'];
@@ -37,7 +38,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const user = requireAuth(req, res);
+  const user = await requireAuth(req, res);
   if (!user) return;
 
   try {
@@ -54,7 +55,8 @@ export default async function handler(req, res) {
 
     const sectionOrder = resume?.sectionOrder || [];
     const sections = resume?.sections || {};
-    const existingBlocks = Array.isArray(blocks) ? blocks : [];
+    const existingBlocks = (Array.isArray(blocks) ? blocks : []).filter((block) =>
+      isBlockEligibleForResume(block, resume?.id));
     const selectedKeywords = Array.isArray(keywords) ? keywords : [];
 
     // Existing block ids the AI may reference
