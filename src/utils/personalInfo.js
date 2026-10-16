@@ -1,3 +1,5 @@
+import { generateId } from './id.js';
+
 // Helper functions for personalInfo with ordered fields (min length 3)
 
 export const DEFAULT_FIELD_SUGGESTIONS = [
@@ -152,4 +154,41 @@ export function normalizePersonalInfo(info) {
     linkedin,
     fields,
   };
+}
+
+// Imported contacts can be flat (AI) or an ordered fields list (PDF links).
+// Merge individual contacts so inherited fields cannot mask extracted values.
+export function mergeImportedPersonalInfo(defaultInfo, importedInfo) {
+  const defaults = normalizePersonalInfo(defaultInfo);
+  const imported = importedInfo && typeof importedInfo === 'object' ? importedInfo : {};
+  const fields = defaults.fields.map((field) => ({ ...field }));
+  const contacts = Array.isArray(imported.fields) && imported.fields.length
+    ? imported.fields
+    : Object.entries({ email: 'Email', phone: 'Phone', linkedin: 'LinkedIn', location: 'Location' })
+      .map(([key, label]) => ({ label, value: imported[key] }));
+  const replaced = new Set();
+  for (const contact of contacts) {
+    if (!contact || typeof contact.label !== 'string' || typeof contact.value !== 'string' || !contact.value.trim()) continue;
+    const label = contact.label.trim();
+    if (!label) continue;
+    const index = fields.findIndex((field, i) => !replaced.has(i) && field.label.trim().toLowerCase() === label.toLowerCase());
+    const next = {
+      id: index < 0 ? generateId() : fields[index].id,
+      label,
+      value: contact.value.trim(),
+      // A saved mailto/link may refer to the old value; replace it as well.
+      url: typeof contact.url === 'string' ? contact.url.trim() : (typeof contact.link === 'string' ? contact.link.trim() : ''),
+    };
+    if (index < 0) {
+      replaced.add(fields.length);
+      fields.push(next);
+    } else {
+      replaced.add(index);
+      fields[index] = next;
+    }
+  }
+  return normalizePersonalInfo({
+    name: typeof imported.name === 'string' && imported.name.trim() ? imported.name.trim() : defaults.name,
+    fields,
+  });
 }

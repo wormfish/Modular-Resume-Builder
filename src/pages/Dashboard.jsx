@@ -5,7 +5,7 @@ import AccountModal from '../components/AccountModal/AccountModal';
 import ImportModal from '../components/ImportModal/ImportModal';
 import { BLOCK_SCHEMA, DEFAULT_OWNER, SECTION_TYPES, concatDescription } from '../utils/constants';
 import BulletedBody, { isBulletType } from '../components/BulletedBody/BulletedBody';
-import { normalizePersonalInfo } from '../utils/personalInfo';
+import { normalizePersonalInfo, mergeImportedPersonalInfo } from '../utils/personalInfo';
 import { generateId } from '../utils/id';
 import { copyBlock } from '../../shared/blocks';
 import { readAuthUser, clearAuthentication } from '../utils/session';
@@ -579,10 +579,8 @@ export default function Dashboard() {
       if (!bulkRes.ok) throw new Error('Failed to save imported blocks');
 
       const resumeId = generateId();
-      const personalInfo = normalizePersonalInfo({
-        ...(defaultInfo || {}), // account defaults fill any gaps
-        ...(parsed.personalInfo || {}), // extracted values win
-      });
+      const defaults = defaultInfo ?? await getOrFetch('defaults', '/api/user/defaults').catch(() => ({}));
+      const personalInfo = mergeImportedPersonalInfo(defaults, parsed.personalInfo);
 
       const res = await fetch('/api/resumes', {
         method: 'POST',
