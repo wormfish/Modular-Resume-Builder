@@ -37,6 +37,10 @@ const SECTION_PATTERNS = [
   { type: 'skills', re: /^((technical|core|key|relevant)\s+)?(skills|competenc(y|ies)|technologies|tools)(\s*(and|&)\s*interests?)?$/i },
 ];
 
+// These headings delimit unsupported content. Font size alone also matches
+// names and styled entry titles, so it cannot safely establish a boundary.
+const SKIPPED_SECTION_RE = /^(certifications?|certificates?|licenses?(?:\s*(?:and|&)\s*certifications?)?|(?:awards?|honou?rs?)(?:\s*(?:and|&)\s*(?:awards?|honou?rs?))?|publications?|references?|achievements?|hobbies(?:\s*(?:and|&)\s*interests?)?|interests?|additional\s+(?:information|qualifications))$/i;
+
 function matchSectionType(title) {
   for (const { type, re } of SECTION_PATTERNS) {
     if (re.test(title)) return type;
@@ -469,6 +473,7 @@ function parseEducationEntry(entryLines, sectionX0) {
       startDate,
       endDate,
       gpa: gpaLine,
+      description: detailLines.filter((text) => text !== gpaLine).join('\n'),
       link,
     },
   };
@@ -729,10 +734,12 @@ export function parseResumeLines(lines) {
     // Known section titles always split, regardless of styling — the app's
     // own PDF export renders them as small all-caps labels (9pt) above
     // larger entry titles, which defeats the font-size heading heuristic.
-    const type = matchSectionType(line.text.replace(/[:.]+$/, '').trim());
+    const title = line.text.replace(/[:.]+$/, '').trim();
+    const type = matchSectionType(title);
+    const skip = type === null && SKIPPED_SECTION_RE.test(title);
     // A larger font can indicate an entry title or the person's name, not
     // just a section boundary. Keep those lines available to the entry parser.
-    if (type !== null) {
+    if (type !== null || skip) {
       // "SUMMARY" immediately followed by a styled "Professional Summary"
       // (site export): keep the inner, more descriptive title instead of
       // opening an empty second segment of the same type.
@@ -740,7 +747,7 @@ export function parseResumeLines(lines) {
         current.title = line.text.replace(/[:.]+$/, '').trim();
       } else {
         if (current.lines.length || current.title) segments.push(current);
-        current = { title: line.text.replace(/[:.]+$/, '').trim(), type, lines: [] };
+        current = { title, type, skip, lines: [] };
       }
     } else {
       current.lines.push(line);
@@ -752,7 +759,7 @@ export function parseResumeLines(lines) {
   // The name itself is often styled as a heading, so include the segment
   // title among the candidate lines.
   const personalInfo = { name: '', email: '', phone: '', location: '' };
-  const headerSeg = segments.length && !segments[0].type ? segments[0] : null;
+  const headerSeg = segments.length && !segments[0].type && !segments[0].skip ? segments[0] : null;
   if (headerSeg) {
     const texts = [headerSeg.title, ...headerSeg.lines.map((l) => l.text)].filter(Boolean);
     personalInfo.name =
@@ -810,6 +817,10 @@ export function parseResumeLines(lines) {
   const skippedSections = [];
 
   segments.forEach((seg, segIdx) => {
+    if (seg.skip) {
+      skippedSections.push(seg.title);
+      return;
+    }
     if (!seg.type) {
       const isHeader = segIdx === 0;
       const untitledLines = isHeader

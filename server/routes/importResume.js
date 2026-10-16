@@ -12,12 +12,13 @@ Return ONLY valid JSON (no markdown, no commentary) matching:
     { "type": "experience", "name": "<Role> — <Company>", "fields": { "role": "", "company": "", "location": "", "startDate": "", "endDate": "", "link": "", "description": "• bullet\\n• bullet" } },
     { "type": "projects", "name": "<Project Name> — <Role>", "fields": { "company": "", "role": "", "link": "", "location": "", "startDate": "", "endDate": "", "description": "• bullet\\n• bullet" } },
     { "type": "activities", "name": "<Role> — <Organization>", "fields": { "role": "", "company": "", "location": "", "startDate": "", "endDate": "", "link": "", "description": "• bullet\\n• bullet" } },
-    { "type": "education", "name": "<Degree> — <Institution>", "fields": { "institution": "", "degree": "", "field": "", "startDate": "", "endDate": "", "link": "", "gpa": "" } },
+    { "type": "education", "name": "<Degree> — <Institution>", "fields": { "institution": "", "degree": "", "field": "", "startDate": "", "endDate": "", "link": "", "gpa": "", "description": "• scholarship, honors, coursework, or other achievement" } },
     { "type": "skills", "name": "Skills", "fields": { "items": [ { "category": "Languages", "skills": "Python, TypeScript, SQL" }, { "category": "Frameworks", "skills": "React, Node.js" } ] } }
   ]
 }
 Rules:
 - One experience block per job, one project block per project, one activities block per activity/club/initiative/volunteer role, one education block per entry; keep every bullet point in the description.
+- For education, put the GPA in "gpa" and preserve every other achievement in "description".
 - Section headings may be missing or hidden. When an entry has no section heading, infer its type from its content (dates, bullet points, role/degree keywords, skill lists).
 - Preserve hyperlinks: whenever a URL appears (as visible link text, in a "(url)" suffix, or as an attached hyperlink), set the entry's "link" field; never drop a URL.
 - Use "experience" for work experience/employment, "projects" for personal/academic/technical projects, and "activities" for co-curricular activities/extracurriculars/community service/volunteering/leadership/organizations.
