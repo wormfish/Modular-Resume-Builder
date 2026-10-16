@@ -11,7 +11,10 @@ function invalid(message, status = 400) {
 export function prepareBlockUpdate(input, owner, existing) {
   if (!input || typeof input.id !== 'string' || !input.id || !TYPES.has(input.type)) invalid('Invalid block data');
   if (existing && existing.owner !== owner) invalid('Not authorized to modify this block', 403);
-  const fields = { ...blockData(input), owner, type: input.type, tagIds: input.tagIds || [] };
+  // Flatten a legacy block on its next edit, retaining fields omitted from a
+  // partial update. The wrapper must disappear so it cannot mask newer fields.
+  const legacyFields = existing?.content && existing.type === input.type ? blockData(existing) : {};
+  const fields = { ...legacyFields, ...blockData(input), owner, type: input.type, tagIds: input.tagIds || [] };
   if (input.variantIn !== undefined) fields.variantIn = input.variantIn || null;
   if (input.variantOf !== undefined) fields.variantOf = input.variantOf || null;
   if (fields.description !== undefined) {
@@ -19,14 +22,14 @@ export function prepareBlockUpdate(input, owner, existing) {
     fields.description = description.filter((s) => typeof s === 'string').map((s) => s.trim()).filter(Boolean);
   }
   const update = { $set: fields };
+  const unset = {};
   if (existing && existing.type !== input.type) {
-    const unset = Object.fromEntries(Object.keys(blockData(existing))
+    Object.assign(unset, Object.fromEntries(Object.keys(blockData(existing))
       .filter((key) => !Object.hasOwn(fields, key) && !['name', 'type', 'tagIds'].includes(key))
-      .map((key) => [key, '']));
-    // Remove a legacy wrapper as well, so it cannot resurrect old content.
-    if (existing.content) unset.content = '';
-    if (Object.keys(unset).length) update.$unset = unset;
+      .map((key) => [key, ''])));
   }
+  if (existing && existing.content !== undefined) unset.content = '';
+  if (Object.keys(unset).length) update.$unset = unset;
   return update;
 }
 

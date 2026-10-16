@@ -386,8 +386,10 @@ export default function App() {
   // new id, marked with this resume's id, swapped in for the original in
   // this resume's sections only. The library block stays untouched, so no
   // other resume is affected.
+  const canSaveResumeVariant = !!editingBlockId && Object.values(resume.sections || {})
+    .some((ids) => ids.includes(editingBlockId));
   const saveBlockAsVariant = useCallback(async () => {
-    if (!editingBlockId) return;
+    if (!canSaveResumeVariant) return;
     const owner = user?.email || DEFAULT_OWNER;
     const variantId = generateId();
 
@@ -442,7 +444,7 @@ export default function App() {
       console.error('Save block variant error:', err);
       alert('Failed to save block variant to server');
     }
-  }, [editingBlockId, tempBlock, resume, setBlocks, setResume, closeModal, user?.email]);
+  }, [canSaveResumeVariant, editingBlockId, tempBlock, resume, setBlocks, setResume, closeModal, user?.email]);
 
   // Save the block being edited as a CHILD VARIANT: a copy stored in the
   // library under the parent block (variantOf set, variantIn null). It shows
@@ -1033,7 +1035,7 @@ export default function App() {
           tags={tags}
           onAddCustomTag={addCustomTag}
           onSave={saveBlock}
-          onSaveVariant={saveBlockAsVariant}
+          onSaveVariant={canSaveResumeVariant ? saveBlockAsVariant : undefined}
           onSaveChildVariant={saveBlockAsChildVariant}
           onClose={closeModal}
         />
