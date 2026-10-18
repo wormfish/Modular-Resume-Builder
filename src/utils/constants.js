@@ -150,13 +150,15 @@ export const BLOCK_SCHEMA = {
       { name: 'startDate', label: 'Start Date', placeholder: 'e.g. Aug 2018', type: 'text' },
       { name: 'endDate', label: 'End Date', placeholder: 'e.g. May 2022', type: 'text' },
       { name: 'gpa', label: 'GPA', placeholder: "e.g. 3.8 / 4.0 or Dean's List", type: 'text' },
+      { name: 'description', label: 'Achievements', placeholder: 'Scholarships, honors, coursework, and other achievements...', type: 'textarea' },
     ],
     render: (b) => ({
       title: b.institution || 'Institution',
       subtitle: `${b.degree || ''}${b.degree && b.field ? ', ' : ''}${b.field || ''}`,
       location: b.location || '',
       dates: `${b.startDate || ''}${b.startDate && b.endDate ? ' – ' : ''}${b.endDate || ''}`,
-      body: b.gpa || '',
+      body: [b.gpa, ...concatDescription(b.description).split('\n').map((line) => line.trim()).filter(Boolean)
+        .map((line) => `• ${line.replace(/^[•\-*–—]\s*/, '')}`)].filter(Boolean).join('\n'),
     }),
   },
   skills: {

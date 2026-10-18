@@ -259,7 +259,7 @@ export default function BlockModal({
   // cell (mirrors the skills builder). Strings from legacy data are handled.
   const getDescriptionItems = () => {
     const d = tempBlock.description;
-    if (Array.isArray(d)) return d;
+    if (Array.isArray(d)) return [...d];
     if (typeof d === 'string')
       return d.split('\n').map((s) => s.trim()).filter(Boolean);
     return [];

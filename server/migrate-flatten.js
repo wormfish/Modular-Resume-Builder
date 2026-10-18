@@ -143,7 +143,19 @@ export async function run() {
     if (u.tags && typeof u.tags === 'object') Object.assign(tags, u.tags);
     else if (u.jobTypes && typeof u.jobTypes === 'object') Object.assign(tags, u.jobTypes);
     userTagMap[u.email.toLowerCase()] = tags;
+  }
 
+  // Discover legacy names before writing either collection. Save the complete
+  // dictionaries first so a failed block write can safely be retried with the
+  // same ids; a block must never reference a tag that was only held in memory.
+  const blocks = await col('blocks').find({}).toArray();
+  const flattenedBlocks = blocks.map((block) => ({
+    block,
+    flat: flattenBlock(block, userTagMap[block.owner.toLowerCase()] || {}),
+  }));
+
+  for (const u of users) {
+    const tags = userTagMap[u.email.toLowerCase()];
     const upd = {
       tags,
       tagsInitialized: u.tagsInitialized ?? u.jobTypesInitialized ?? true,
@@ -164,11 +176,8 @@ export async function run() {
   }
 
   // ── Phase 2: blocks — flatten + rename (needs user tags for legacy names) ───
-  const blocks = await col('blocks').find({}).toArray();
   const stats = { flattened: 0, cca: 0, tagsRenamed: 0, variantRenamed: 0, linkMoved: 0 };
-  for (const b of blocks) {
-    const userTags = userTagMap[b.owner.toLowerCase()] || {};
-    const flat = flattenBlock(b, userTags);
+  for (const { block: b, flat } of flattenedBlocks) {
     const beforeJson = JSON.stringify(b);
     delete flat.__v;
 

@@ -79,7 +79,8 @@ For "education":
     "location": "City, State",
     "startDate": "Start Date",
     "endDate": "End Date",
-    "gpa": "<GPA or honors explicitly provided by the user>"
+    "gpa": "<GPA explicitly provided by the user>",
+    "description": "<Scholarships, honors, coursework, and achievements explicitly provided by the user>"
   }
 }
 

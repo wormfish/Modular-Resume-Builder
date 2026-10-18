@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { copyBlock, isBlockEligibleForResume } from '../shared/blocks.js';
-import { prepareBlockUpdate, saveBlocks } from '../api-lib/blockUpdates.js';
+import { prepareBlockUpdate, saveBlock, saveBlocks } from '../api-lib/blockUpdates.js';
 import { copyResumeForUser } from '../api-lib/resumeCopy.js';
 import { moveBlockToTypeSection } from '../src/utils/sections.js';
 
@@ -17,6 +17,38 @@ test('duplicated flat and legacy blocks retain content with fresh identities', (
     assert.deepEqual(copy.description, ['Built the platform']);
     assert.equal(copy.role, 'Engineer');
     assert.deepEqual(copy.tagIds, ['engineering']);
+  }
+});
+
+test('single and bulk edits flatten legacy content without losing omitted fields or restoring old text', async () => {
+  for (const bulk of [false, true]) {
+    let stored = { _id: 'legacy', owner, type: 'summary', name: 'Original name',
+      content: { headline: 'Engineer', body: 'Old text', link: 'https://example.com' } };
+    const apply = (update) => {
+      Object.assign(stored, update.$set);
+      for (const key of Object.keys(update.$unset || {})) delete stored[key];
+    };
+    const Block = {
+      findById: async () => structuredClone(stored),
+      find: async () => [structuredClone(stored)],
+      findOneAndUpdate: async (_query, update) => { apply(update); return stored; },
+      bulkWrite: async (ops) => { for (const op of ops) apply(op.updateOne.update); },
+    };
+    const input = { id: 'legacy', type: 'summary', body: 'Edited text' };
+    if (bulk) await saveBlocks(Block, [input], owner);
+    else await saveBlock(Block, input, owner);
+    assert.equal(stored.content, undefined);
+    assert.equal(stored.headline, 'Engineer');
+    assert.equal(stored.body, 'Edited text');
+    assert.equal(stored.link, 'https://example.com');
+    assert.equal(stored.name, 'Original name');
+    // The builder and dashboard still support responses from old records.
+    const { content, ...flat } = stored;
+    assert.equal({ ...flat, ...content }.body, 'Edited text');
+    if (bulk) await saveBlocks(Block, [{ ...input, body: 'Second edit' }], owner);
+    else await saveBlock(Block, { ...input, body: 'Second edit' }, owner);
+    assert.equal(stored.headline, 'Engineer');
+    assert.equal(stored.body, 'Second edit');
   }
 });
 
